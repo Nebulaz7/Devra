@@ -37,40 +37,45 @@ Building a decentralized marketplace where:
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  1.  Triggers AI Verification         │
+        │  1.        Uploads Dataset           │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  2. Encrypts & Uploads Dataset       │
-        └──────────────────────────────────────┘
-                           │
-                           ▼
-        ┌──────────────────────────────────────┐
-        │  3. Stores Encrypted File on IPFS    │
-        │     (via Crust Network)              │
+        │  2. Triggers AI Verification         │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
         │     [AI Model API]                   │
-        │  4. Analyzes Data & Returns Score    │
+        │  3. Analyzes Data & Returns Score    │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  5. Calls Smart Contract to Mint NFT │
+        │  4.        Encrypts Dataset          │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  6. Updates NFT Metadata with        │
+        │  5. Stores Encrypted File on IPFS    │
+        │     (via Crust Network)              │
+        └──────────────────────────────────────┘
+                           │
+                           ▼
+        ┌──────────────────────────────────────┐
+        │  6. Calls Smart Contract to Mint NFT │
+        └──────────────────────────────────────┘
+                           │
+                           ▼
+        ┌──────────────────────────────────────┐
+        │  7. Updates NFT Metadata with        │
         │     AI Score                         │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  7. NFT is Minted & Listed           │
+        │  8. NFT is Minted & Listed           │
         └──────────────────────────────────────┘
                            │
                            ▼
