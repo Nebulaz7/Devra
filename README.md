@@ -37,18 +37,18 @@ Building a decentralized marketplace where:
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  1. Encrypts & Uploads Dataset       │
+        │  1.  Triggers AI Verification         │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  2. Stores Encrypted File on IPFS    │
+        │  2. Encrypts & Uploads Dataset       │
+        └──────────────────────────────────────┘
+                           │
+                           ▼
+        ┌──────────────────────────────────────┐
+        │  3. Stores Encrypted File on IPFS    │
         │     (via Crust Network)              │
-        └──────────────────────────────────────┘
-                           │
-                           ▼
-        ┌──────────────────────────────────────┐
-        │  3. Triggers AI Verification         │
         └──────────────────────────────────────┘
                            │
                            ▼
