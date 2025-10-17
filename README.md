@@ -1,4 +1,4 @@
-# Hackathon MVP Battle Plan
+# Hackathon MVP Devra Plan
 ## Decentralized Dataset Marketplace with AI Verification
 
 ---
