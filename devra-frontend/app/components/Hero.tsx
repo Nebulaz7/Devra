@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 
 const Hero = () => {
@@ -10,7 +11,12 @@ const Hero = () => {
           datasets verified by AI as NFTs, which can be purchased by data
           buyers.
         </p>
-        <button className="px-8 py-3 bg-white text-black text-sm tracking-wide cursor-pointer hover:bg-gray-300 transition-colors">
+        <button
+          onClick={() => {
+            window.location.href = "/connect";
+          }}
+          className="px-8 py-3 bg-white text-black text-sm tracking-wide cursor-pointer hover:bg-gray-300 transition-colors"
+        >
           Continue
         </button>
       </div>

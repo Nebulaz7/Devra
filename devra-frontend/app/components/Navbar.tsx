@@ -20,7 +20,7 @@ const NavBar = () => {
         </div>
         <div className="flex items-center space-x-4">
           <Link
-            href="/get-started"
+            href="/connect"
             className="appearance-none cursor-pointer px-6 py-1 font-heading rounded-full text-sm hover:text-green-50 border bg-green-500/10 border-green-500/20 text-green-500 focus-visible:bg-white/20 hover:bg-green-500 backdrop-blur-sm transition-all duration-200"
           >
             Launch App
