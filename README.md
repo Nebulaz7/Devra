@@ -37,40 +37,45 @@ Building a decentralized marketplace where:
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  1.  Triggers AI Verification         │
+        │  1.        Uploads Dataset           │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  2. Encrypts & Uploads Dataset       │
-        └──────────────────────────────────────┘
-                           │
-                           ▼
-        ┌──────────────────────────────────────┐
-        │  3. Stores Encrypted File on IPFS    │
-        │     (via Crust Network)              │
+        │  2. Triggers AI Verification         │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
         │     [AI Model API]                   │
-        │  4. Analyzes Data & Returns Score    │
+        │  3. Analyzes Data & Returns Score    │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  5. Calls Smart Contract to Mint NFT │
+        │  4.        Encrypts Dataset          │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  6. Updates NFT Metadata with        │
+        │  5. Stores Encrypted File on IPFS    │
+        │     (via Crust Network)              │
+        └──────────────────────────────────────┘
+                           │
+                           ▼
+        ┌──────────────────────────────────────┐
+        │  6. Calls Smart Contract to Mint NFT │
+        └──────────────────────────────────────┘
+                           │
+                           ▼
+        ┌──────────────────────────────────────┐
+        │  7. Updates NFT Metadata with        │
         │     AI Score                         │
         └──────────────────────────────────────┘
                            │
                            ▼
         ┌──────────────────────────────────────┐
-        │  7. NFT is Minted & Listed           │
+        │  8. NFT is Minted & Listed           │
         └──────────────────────────────────────┘
                            │
                            ▼
@@ -247,19 +252,93 @@ Before any development begins, define the complete data structures and API endpo
 
 ### Backend Team
 
-1. **Implement Upload Logic**
-   - Create `POST /list` endpoint
-   - Accept file from frontend
-   - Encrypt and upload to Crust/IPFS
-   - Return IPFS CID
+1. **Setup Environment**
 
-2. **Implement AI Trigger**
-   - After IPFS upload, call AI's `POST /verify`
-   - Pass IPFS CID and temporary decryption key
+Initialize a NestJS project with a modular structure (dataset, encryption, ipfs, validation, deduplication).
 
-3. **Implement Blockchain Interaction**
-   - After receiving IPFS CID, call `mintDataset()`
-   - After AI returns score, call `updateVerificationStatus()`
+Configure .env file for Crust IPFS credentials and other secrets.
+
+Install core dependencies:
+
+npm install @nestjs/platform-express axios crypto multer dotenv
+
+
+Set up a temporary /tmp directory for encrypted files.
+
+2.**Dataset Upload Flow**
+
+Create DatasetController with /datasets/upload endpoint.
+
+Accept dataset file + metadata using Multer.
+
+Validate request inputs (ensure file and metadata are present).
+
+Log file details (e.g., name, size, uploader) for tracking.
+
+3. **Encryption Layer (Security Core)**
+
+Implement EncryptionService using AES-256-CBC algorithm.
+
+Generate a unique encryption key and IV for each dataset.
+
+Encrypt dataset buffer and save the encrypted file temporarily in /tmp.
+
+Return encryption metadata (key + iv) securely to the caller.
+
+Keep encryption logic modular for future algorithm upgrades.
+
+4. **Deduplication System**
+
+Compute a SHA-256 hash of each uploaded dataset before encryption.
+
+Check existing records in the database for duplicate hashes.
+
+Reject duplicate uploads to prevent spam or redundant storage.
+
+Continue encryption + upload only if dataset is unique.
+
+5. **Decentralized Storage Integration**
+
+Implement IpfsService to handle file uploads to Crust Network (IPFS).
+
+Upload the encrypted dataset through the Crust W3Auth gateway.
+
+Retrieve and verify the IPFS CID after upload.
+
+Store CID, file hash, filename, uploader, and timestamp in the database.
+
+6. **Dataset Metadata & Persistence**
+
+Create Dataset entity/model (using Prisma or TypeORM).
+
+Store dataset metadata fields:
+
+filename
+
+hash
+
+cid
+
+size
+
+uploader
+
+timestamp
+
+Keep AES key and IV stored securely (not publicly exposed).
+
+Return a success response with the CID and relevant dataset info.
+
+7. **AI Validation Integration**
+
+Connect the backend to the AI/ML API (FastAPI container).
+
+Send dataset CID and temporary decryption key for analysis.
+
+Receive validation results (e.g., quality score, status, category).
+
+Include the AI evaluation results in the final response or store them in the DB.
+
 
 ---
 
