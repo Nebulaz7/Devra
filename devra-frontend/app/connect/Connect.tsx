@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { use } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { ArrowUpRight, Wallet, ArrowLeft, Link2, Search } from "lucide-react";
 const Connect = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConnectWallet = () => {
     setIsConnecting(true);
@@ -15,6 +16,7 @@ const Connect = () => {
     setTimeout(() => {
       setIsConnecting(false);
       alert("Wallet connected!");
+      setError("Something went wrong while connecting the wallet.");
     }, 2000);
   };
 
@@ -61,6 +63,9 @@ const Connect = () => {
             )}
           </motion.button>
         </div>
+
+        {/* Error section */}
+        <p className="text-red-400 text-sm">{error}</p>
 
         {/* Network Info - Enhanced */}
         <div className="mt-6 mb-4">
@@ -177,7 +182,10 @@ const Connect = () => {
 
             {/* Additional Network Info */}
             <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px]">
-              <div className="flex items-center gap-1 text-white/40">
+              <Link
+                href="https://docs.polkadot.com/develop/smart-contracts/connect-to-polkadot/#networks-details"
+                className="flex cursor-pointer items-center gap-1 text-white/40 hover:text-white/70 transition duration-200"
+              >
                 <svg
                   className="w-3 h-3"
                   fill="currentColor"
@@ -190,7 +198,7 @@ const Connect = () => {
                   />
                 </svg>
                 <span>Testnet Only</span>
-              </div>
+              </Link>
               <a
                 href="https://faucet.polkadot.io/?parachain=1111"
                 target="_blank"
@@ -207,11 +215,11 @@ const Connect = () => {
         {/* Terms */}
         <p className="mt-8 text-xs text-center text-white/50 pb-3">
           By connecting, you accept the{" "}
-          <Link href="#" className="text-pink-400 hover:text-sky-300">
+          <Link href="#" className="text-pink-400 hover:text-pink-300">
             Terms of Service
           </Link>{" "}
           and acknowledge our{" "}
-          <Link href="#" className="text-pink-400 hover:text-sky-300">
+          <Link href="#" className="text-pink-400 hover:text-pink-300">
             Privacy Policy
           </Link>
           .
