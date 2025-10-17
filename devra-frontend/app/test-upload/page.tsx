@@ -70,7 +70,7 @@ const Page = () => {
             </div>
             <button
               onClick={removeFile}
-              className="text-gray-500 hover:text-red-400 transition duration-200"
+              className="text-gray-500 cursor-pointer hover:text-red-400 transition duration-200"
             >
               <X className="w-5 h-5" />
             </button>
