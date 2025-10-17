@@ -28,6 +28,9 @@ export class EncryptService {
     fs.mkdirSync(path.dirname(encryptedPath), { recursive: true });
     fs.writeFileSync(encryptedPath, encrypted);
     console.log('🔐 Dataset encrypted and saved to:', encryptedPath);
+    console.log('🗝️  Encryption key (hex):', key.toString('hex'));
+    console.log('🔑 Initialization vector (hex):', iv.toString('hex'));
+    console.log('🛡️  Auth tag (hex):', authTag.toString('hex'));
 
     return {
       encryptedPath,
@@ -46,7 +49,7 @@ export class EncryptService {
 
     const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
     decipher.setAuthTag(authTag);
-    
+
     const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
     console.log('🔓 Dataset decrypted from:', encryptedFilePath);
 
