@@ -10,13 +10,19 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { EncryptService } from '../encryption/encrypt.service';
 import type { Request } from 'express';
 import { CreateDatasetDto } from './dto/create-dataset.dto';
+
 @Controller('datasets')
 export class UploadController {
   constructor(private readonly encryptService: EncryptService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadDataset(@UploadedFile() file: Express.Multer.File, @Req() req: Request, @Body() createDatasetDto: CreateDatasetDto, ) {
+  async uploadDataset(@UploadedFile() file: Express.Multer.File, @Req() req: Request, @Body() createDatasetDto: CreateDatasetDto): Promise<{
+    message?: string;
+    metadata?: CreateDatasetDto;
+    encryptedPath?;
+    error?: string;
+  }> {
     if (!file) return { error: 'No dataset file uploaded' };
 
     console.log('📦 Dataset received:', file.originalname);
@@ -24,12 +30,12 @@ export class UploadController {
     console.log('👤 Uploaded by wallet:', createDatasetDto.owner);
     console.log('📝 Metadata:', createDatasetDto);
 
-    const encryptedFilePath = await this.encryptService.encryptDataset(file);
+    const encryptedPath = await this.encryptService.encryptDataset(file);
 
     return {
       message: 'Dataset uploaded and encrypted successfully',
       metadata: createDatasetDto,
-      encryptedFilePath,
+      encryptedPath,
     };
   }
 }

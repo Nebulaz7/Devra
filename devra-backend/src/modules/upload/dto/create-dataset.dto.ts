@@ -5,13 +5,13 @@ export class CreateDatasetDto {
   @IsNotEmpty()
   name: string;
 
+  @IsOptional()
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
-  owner: string;
+  owner?: string;
 
-  @IsString()
+  @IsOptional()
   @IsNotEmpty()
-  timestamp: string;
+  timestamp?: string;
 
   @IsOptional()
   @IsString()
