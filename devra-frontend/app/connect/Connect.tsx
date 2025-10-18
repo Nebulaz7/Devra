@@ -3,6 +3,7 @@ import React, { use } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import "@fontsource/quantico/700.css";
 import { ArrowUpRight, Wallet, ArrowLeft, Link2, Search } from "lucide-react";
 
 const Connect = () => {
@@ -24,7 +25,8 @@ const Connect = () => {
     <div className="h-screen bg-gradient-to-b from-black to-pink-500 flex flex-col items-center justify-center">
       <div className="bg-[#1e1d1d] border-1 border-gray-600 rounded-2xl px-6 py-8 text-center">
         <h1 className="text-3xl font-light mb-6 text-white">
-          Welcome to Devra
+          Welcome to{" "}
+          <span style={{ fontFamily: "quantico, sans-serif" }}>Devra</span>
         </h1>
         <p className="pb-6 text-sm text-gray-400">
           To use Devra you must connect to your Polkadot testnet wallet
