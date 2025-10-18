@@ -1,5 +1,6 @@
 "use client";
 import { ArrowUp, ArrowUpRight } from "lucide-react";
+import "@fontsource/quantico/700.css";
 import Link from "next/link";
 
 const NavBar = () => {
@@ -11,7 +12,11 @@ const NavBar = () => {
           tabIndex={0}
           className="select-none cursor-pointer outline-0"
         >
-          <Link href="/" className="text-[24px] pl-2 gap-2">
+          <Link
+            href="/"
+            style={{ fontFamily: "quantico, sans-serif" }}
+            className="text-[24px] pl-2 gap-2"
+          >
             Devra{" "}
             <span className="text-sm p-[6px] border-solid border-1 border-white rounded-full">
               Beta
