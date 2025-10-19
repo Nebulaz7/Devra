@@ -60,7 +60,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
     <motion.aside
       initial={false}
       animate={{
-        width: isCollapsed ? "80px" : "256px",
+        width: isCollapsed ? "74px" : "256px",
       }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className={`relative h-screen rounded-tr-3xl rounded-br-3xl border-r border-white/10 flex flex-col ${className}`}
@@ -120,10 +120,10 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
               key={item.href}
               href={item.href}
               className={`
-                group relative flex items-center gap-3 px-3 py-2     rounded-xl transition-all duration-200
+                group relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
                 ${
                   active
-                    ? "bg-gradient-to-r from-pink-500/20 to-pink-500/20 text-white border border-pink-500/30"
+                    ? "bg-gradient-to-r from-pink-500/20 to-pink-500/20 text-pink-500 border-none"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }
               `}
@@ -151,7 +151,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
                     exit={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.2 }}
                     className={`font-medium text-sm ${
-                      active ? "text-white" : ""
+                      active ? "text-pink-400" : ""
                     }`}
                   >
                     {item.name}
