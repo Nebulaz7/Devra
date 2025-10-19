@@ -21,6 +21,7 @@ export class UploadController {
     message?: string;
     metadata?: CreateDatasetDto;
     encryptedPath?;
+    hash?: string;
     error?: string;
   }> {
     if (!file) return { error: 'No dataset file uploaded' };
@@ -30,12 +31,16 @@ export class UploadController {
     console.log('👤 Uploaded by wallet:', createDatasetDto.owner);
     console.log('📝 Metadata:', createDatasetDto);
 
+    const hash = await this.encryptService.hashDataset(file);
+    console.log('🧩 Dataset hash (SHA-256):', hash);
+
     const encryptedPath = await this.encryptService.encryptDataset(file);
 
     return {
       message: 'Dataset uploaded and encrypted successfully',
       metadata: createDatasetDto,
       encryptedPath,
+      hash,
     };
   }
 }

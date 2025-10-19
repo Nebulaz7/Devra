@@ -11,6 +11,12 @@ export class EncryptService {
   private readonly algorithm = 'aes-256-gcm';
   constructor(private readonly rsaService: RsaService) {}
 
+  async hashDataset(file: Express.Multer.File): Promise<string> {
+    const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+    console.log('🧩 Dataset hash (SHA-256):', hash);
+    return hash;
+  }
+
   async encryptDataset(file: Express.Multer.File): Promise<EncryptedFileDto> {
     const aesKey = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
