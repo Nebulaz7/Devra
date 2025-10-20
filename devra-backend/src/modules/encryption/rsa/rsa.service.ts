@@ -23,7 +23,6 @@ export class RsaService {
 
     // 🗝️ If keys don’t exist, generate new ones
     if (!fs.existsSync(this.privateKeyPath) || !fs.existsSync(this.publicKeyPath)) {
-      console.log('⚙️ Generating RSA key pair for envelope encryption...');
       const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
         modulusLength: 4096, // secure
         publicKeyEncoding: { type: 'pkcs1', format: 'pem' },
@@ -32,9 +31,6 @@ export class RsaService {
 
       fs.writeFileSync(this.privateKeyPath, privateKey);
       fs.writeFileSync(this.publicKeyPath, publicKey);
-      console.log('🔐 Private key saved to:', this.privateKeyPath);
-      console.log('🔓 Public key saved to:', this.publicKeyPath);
-      console.log('✅ RSA key pair generated and saved in /keys');
     }
   }
 
