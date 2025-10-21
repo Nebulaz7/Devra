@@ -1,13 +1,24 @@
-import { Controller, Get } from "@nestjs/common";
-import { CrustService } from "./crust.service"
+import { Controller, Post, Body } from '@nestjs/common';
+import { UploadQueueService } from './queue/upload-queue.service';
 
 @Controller('crust')
 export class CrustController {
-    constructor(private readonly testUploadService: CrustService) {}
+  constructor(private readonly uploadQueueService: UploadQueueService) {}
 
-    @Get()
-    async crustUpload() {
-     const filePath = './src/test/test.txt';
-     return this.testUploadService.uploadToCrust(filePath);
+  @Post('upload')
+  async scheduleUpload(@Body() body: { filePath: string; metadata?: any }) {
+    if (!body || !body.filePath) {
+      return { error: 'filePath is required' };
+    }
+
+    await this.uploadQueueService.addJob({
+      filePath: body.filePath,
+      metadata: body.metadata,
+    });
+
+    return {
+      message: '✅ Upload scheduled successfully',
+      filePath: body.filePath,
+    };
   }
 }

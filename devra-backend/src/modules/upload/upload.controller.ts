@@ -11,10 +11,11 @@ import { EncryptService } from '../encryption/encrypt.service';
 import type { Request } from 'express';
 import { CreateDatasetDto } from './dto/create-dataset.dto';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
+import { UploadQueueService } from '../crust/queue/upload-queue.service';
 
 @Controller('datasets')
 export class UploadController {
-  constructor(private readonly encryptService: EncryptService, private readonly datasetRecordService: DatasetRecordService) {}
+  constructor(private readonly encryptService: EncryptService, private readonly datasetRecordService: DatasetRecordService, private readonly uploadQueueService: UploadQueueService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -36,6 +37,11 @@ export class UploadController {
      hash,
     });
     console.log('🗂️  Dataset record created:', datasetRecord);
+
+    await this.uploadQueueService.addJob({
+      filePath: encryptedPath.encryptedPath,
+      metadata: createDatasetDto,
+    });
 
     return {
       message: 'Dataset uploaded and encrypted successfully',
