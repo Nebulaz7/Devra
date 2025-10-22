@@ -1,10 +1,12 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Process } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 import { Worker, Job, Queue } from 'bullmq';
 import { createBullMQConnection } from './bullmq.config';
 import { CrustService } from '../crust.service';
 import { UploadJobData } from './upload-queue.service';
 import type { Redis } from 'ioredis';
+import { DatasetRecordService } from 'src/modules/encryption/dataset-record.service';
 
 @Injectable()
 export class UploadProcessor implements OnModuleInit {
@@ -15,6 +17,7 @@ export class UploadProcessor implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly crustService: CrustService,
+    private readonly datasetRecordService: DatasetRecordService,
   ) {}
 
   onModuleInit() {
@@ -34,33 +37,38 @@ export class UploadProcessor implements OnModuleInit {
       }
     });
 
-    this.worker = new Worker<UploadJobData>(
-      'crust-upload',
-      async (job: Job<UploadJobData>) => {
-        this.logger.debug(`📦 Processing upload job: ${job.id}`);
-        const { filePath, metadata } = job.data;
+this.worker = new Worker<UploadJobData>(
+  'crust-upload',
+  async (job: Job<UploadJobData>) => {
+    this.logger.debug(`📦 Processing upload job: ${job.id}`);
+    const { filePath, metadata, datasetId } = job.data;
 
-        try {
-          const result = await this.crustService.uploadToCrust(filePath);
-          
-          const hashValue = 'hash' in result ? result.hash : result.Hash;
-          this.logger.log(`✅ Upload complete for ${filePath}: ${hashValue}`);
+    try {
+      const result = await this.crustService.uploadToCrust(filePath);
+      const cid = 'hash' in result ? result.hash : result.Hash;
+      this.logger.log(`✅ Upload complete for ${filePath}: ${cid}`);
 
-          return result;
-        } catch (err) {
-          this.logger.error(`❌ Upload failed for ${filePath}: ${err.message}`);
-          throw err;
-        }
-      },
-      { 
-        connection: this.connection, 
-        concurrency: 3,
-        autorun: true,
-        // Set worker options that handle stuck jobs
-        stalledInterval: 30000,     // Check for stalled jobs every 30 seconds
-        maxStalledCount: 3          // Allow jobs to be marked as stalled up to 3 times
-      },
-    );
+      if (datasetId && typeof datasetId === 'string' && cid) {
+        await this.datasetRecordService.markAsUploaded(datasetId, cid);
+        this.logger.log(`🗄️ Dataset ${datasetId} updated with CID.`);
+      } else {
+        this.logger.warn(`⚠️ Missing datasetId or CID — skipping DB update.`);
+      }
+
+      return { cid };
+    } catch (err) {
+      this.logger.error(`❌ Upload failed for ${filePath}: ${err.message}`);
+      throw err;
+    }
+  },
+  {
+    connection: this.connection,
+    concurrency: 3,
+    autorun: true,
+    stalledInterval: 30000,
+    maxStalledCount: 3,
+  },
+);
 
     this.worker.on('completed', (job) => {
       this.logger.log(`🎯 Job completed: ${job.id}`);
@@ -79,4 +87,5 @@ export class UploadProcessor implements OnModuleInit {
       await this.worker.close();
       await this.connection.quit();
     });
-}}
+  }
+}

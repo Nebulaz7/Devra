@@ -7,6 +7,7 @@ import { createBullMQConnection } from './bullmq.config';
 
 
 export interface UploadJobData {
+  datasetId?: string;
   filePath: string;
   metadata?: Record<string, any>;
 }

@@ -6,10 +6,13 @@ import { EncryptService } from '../encryption/encrypt.service';
 import { RsaService } from '../encryption/rsa/rsa.service';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { UploadQueueService } from '../crust/queue/upload-queue.service';
+import { CrustService } from '../crust/crust.service';
+import { EncryptionModule } from '../encryption/encrypt.module';
+import { CrustModule } from '../crust/crust.module';
 
 @Module({
-  imports: [],
+  imports: [EncryptionModule, CrustModule ],
   controllers: [UploadController],
-  providers: [UploadService, EncryptService, RsaService, DatasetRecordService, UploadQueueService, ConfigService],
+  providers: [UploadService, EncryptService, RsaService, DatasetRecordService, UploadQueueService, CrustService, ConfigService],
 })
 export class UploadModule {}
