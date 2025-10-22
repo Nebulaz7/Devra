@@ -13,7 +13,6 @@ export class EncryptService {
 
   async hashDataset(file: Express.Multer.File): Promise<string> {
     const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
-    console.log('🧩 Dataset hash (SHA-256):', hash);
     return hash;
   }
 
@@ -31,13 +30,8 @@ export class EncryptService {
     
     fs.mkdirSync(path.dirname(encryptedPath), { recursive: true });
     fs.writeFileSync(encryptedPath, encrypted);
-    console.log('🔐 Dataset encrypted and saved to:', encryptedPath);
-    console.log('🗝️  Encryption key (hex):', aesKey.toString('hex'));
-    console.log('🔑 Initialization vector (hex):', iv.toString('hex'));
-    console.log('🛡️  Auth tag (hex):', authTag.toString('hex'));
 
     const encryptedKey = this.rsaService.encryptKey(aesKey);
-    console.log('🔒 AES key wrapped with RSA public key.');
 
     const result = new EncryptedFileDto();
     result.encryptedPath = encryptedPath;
@@ -58,7 +52,6 @@ export class EncryptService {
     decipher.setAuthTag(authTag);
 
     const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
-    console.log('🔓 Dataset decrypted from:', encryptedFilePath);
 
     return decrypted;
   }
