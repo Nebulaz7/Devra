@@ -37,6 +37,7 @@ const Nav = () => {
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setWalletAddress("0x1234ihdiuhsuisjiu");
   }, []);
 
   // Prevent body scroll when mobile menu is open
@@ -170,7 +171,7 @@ const Nav = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="hidden lg:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-400/30 to-pink-500/90 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-600/25"
+                className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-600/25"
               >
                 <Plus className="w-4 h-4" />
                 <span>Upload Dataset</span>
@@ -180,7 +181,7 @@ const Nav = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="hidden cursor-pointer md:flex lg:hidden items-center gap-1 px-3 py-2 bg-gradient-to-r from-pink-400/30 to-pink-500/90 hover:bg-pink-600 text-white rounded-full font-medium text-sm transition-all duration-200"
+                className="hidden cursor-pointer md:flex lg:hidden items-center gap-1 px-3 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full font-medium text-sm transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
                 <span>Upload</span>
@@ -190,7 +191,7 @@ const Nav = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="md:hidden px-3 py-2 bg-gradient-to-r from-pink-400/30 to-pink-500/90 hover:bg-pink-600 cursor-pointer text-white rounded-full transition-all duration-200"
+                className="md:hidden px-3 py-2 bg-pink-500/90 hover:bg-pink-600 cursor-pointer text-white rounded-full transition-all duration-200"
               >
                 <Plus className="w-5 h-5" />
               </motion.button>
@@ -202,7 +203,7 @@ const Nav = () => {
                     onClick={() =>
                       setIsWalletDropdownOpen(!isWalletDropdownOpen)
                     }
-                    className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
+                    className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -244,7 +245,7 @@ const Nav = () => {
 
                           <button
                             onClick={copyAddress}
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                            className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
                           >
                             <Copy className="w-4 h-4" />
                             {copySuccess ? "Copied!" : "Copy Address"}
@@ -252,7 +253,7 @@ const Nav = () => {
 
                           <button
                             onClick={handleDisconnect}
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors duration-200"
+                            className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors duration-200"
                           >
                             <LogOut className="w-4 h-4" />
                             Disconnect
@@ -344,14 +345,14 @@ const Nav = () => {
                       <div className="flex gap-2 mt-3">
                         <button
                           onClick={copyAddress}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                          className="flex-1 flex items-center cursor-pointer justify-center gap-2 px-3 py-2 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
                         >
                           <Copy className="w-3 h-3" />
                           {copySuccess ? "Copied!" : "Copy"}
                         </button>
                         <button
                           onClick={handleDisconnect}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded transition-colors"
+                          className="flex-1 flex items-center cursor-pointer justify-center gap-2 px-3 py-2 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded transition-colors"
                         >
                           <LogOut className="w-3 h-3" />
                           Disconnect
