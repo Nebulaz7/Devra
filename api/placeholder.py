@@ -7,25 +7,22 @@ from cryptography.hazmat.backends import default_backend
 import os
 import base64
 import json
-import random  # Placeholder for AI scoring
+import random  
 
 app = FastAPI(title="AI Dataset Verifier", version="0.1.0")
 
-# Pydantic models for request/response
 class VerifyRequest(BaseModel):
     ipfsCid: str
-    tempDecryptionKey: str  # Base64-encoded AES key
+    tempDecryptionKey: str  
 
 class VerifyResponse(BaseModel):
-    score: int  # 0-100
-    status: str  # "PENDING", "VERIFIED", "FAILED"
+    score: int  
+    status: str  
 
-# Placeholder AI function (replace with real model later, e.g., scikit-learn or HuggingFace)
 def ai_verify_data(data: bytes) -> tuple[int, str]:
-    # Simulate: Score based on data size (e.g., >1KB = high quality) + random factor
     size = len(data)
-    base_score = min(100, max(0, (size / 1024) * 10))  # Arbitrary: 1KB = 10 points
-    score = int(base_score + random.uniform(-10, 20))  # Add noise
+    base_score = min(100, max(0, (size / 1024) * 10))  
+    score = int(base_score + random.uniform(-10, 20))  
     score = max(0, min(100, score))
     
     status = "VERIFIED" if score >= 50 else "FAILED"
