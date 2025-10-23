@@ -1,0 +1,24 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Dataset {
+  id          String   @id @default(uuid())
+  name        String
+  owner       String
+  category    String?
+  hash        String
+  encryption  Json
+  cid         String?
+  ipfsUrl     String?
+  status      String   @default("pending")
+  uploadedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
