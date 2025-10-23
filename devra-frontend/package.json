@@ -10,9 +10,12 @@
   },
   "dependencies": {
     "@fontsource/quantico": "^5.2.7",
+    "@polkadot/extension-dapp": "^0.62.3",
+    "@polkadot/extension-inject": "^0.62.3",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.545.0",
     "next": "15.5.5",
+    "polkadot-api": "^1.20.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
