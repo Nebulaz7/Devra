@@ -62,9 +62,9 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
                 address={walletAddress}
                 size={
                   typeof window !== "undefined" && window.innerWidth < 640
-                    ? 76
+                    ? 72
                     : typeof window !== "undefined" && window.innerWidth < 1024
-                    ? 104
+                    ? 100
                     : 120
                 }
               />
