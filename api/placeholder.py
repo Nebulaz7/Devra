@@ -31,33 +31,28 @@ def ai_verify_data(data: bytes) -> tuple[int, str]:
 @app.post("/verify", response_model=VerifyResponse)
 async def verify_dataset(request: VerifyRequest):
     try:
-        # Step 1: Fetch encrypted data from IPFS (using public gateway for simplicity)
-        # In prod, use Crust gateway or local node
         ipfs_url = f"https://ipfs.io/ipfs/{request.ipfsCid}"
         response = requests.get(ipfs_url)
         response.raise_for_status()
         encrypted_data = response.content
         
-        # Step 2: Decrypt (assuming AES-256-CBC; key is 32 bytes)
-        # Decode base64 key (in real flow, backend provides full key+IV)
         try:
-            key_b64 = request.tempDecryptionKey  # Assume this is the full key for now (key + IV concatenated)
+            key_b64 = request.tempDecryptionKey  
             key_iv = base64.b64decode(key_b64)
-            key = key_iv[:32]  # First 32 bytes = key
-            iv = key_iv[32:48]  # Next 16 bytes = IV
+            key = key_iv[:32]  
+            iv = key_iv[32:48]  
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid decryption key: {str(e)}")
         
-        # Decrypt
         backend = default_backend()
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
         decryptor = cipher.decryptor()
-        # Remove padding (PKCS7)
+    
         padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
         unpadder = padded_data.rstrip(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f" * 16)  # Simple unpad
-        decrypted_data = unpadder.rstrip(b"\x10" * 16)  # Adjust for actual padding
+        decrypted_data = unpadder.rstrip(b"\x10" * 16) 
         
-        # Step 3: Run AI verification
+        
         score, status = ai_verify_data(decrypted_data)
         
         return VerifyResponse(score=score, status=status)
