@@ -7,7 +7,7 @@ import Dashboard from "./Dashboard";
 const Page = () => {
   return (
     <div className="min-h-screen bg-[#0f0f17]">
-      <TopNav />
+      <TopNav activeTab="/dashboard" />
       <main>
         <Dashboard />
       </main>

@@ -28,7 +28,11 @@ const DoubleLineIcon = ({ size = 30, className = "" }) => (
   </svg>
 );
 
-const Nav = () => {
+interface NavProps {
+  activeTab?: string;
+}
+
+const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -81,6 +85,10 @@ const Nav = () => {
       return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
     return address;
+  };
+
+  const isActive = (path: string) => {
+    return activeTab === path;
   };
 
   return (
@@ -142,25 +150,55 @@ const Nav = () => {
             <nav className="hidden md:flex items-center space-x-2 lg:space-x-4">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 px-3 lg:px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group"
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 group ${
+                  isActive("/dashboard")
+                    ? "bg-pink-500/10 text-pink-400"
+                    : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                }`}
               >
-                <LayoutDashboard className="w-4 h-4 group-hover:text-pink-400 transition-colors duration-200" />
+                <LayoutDashboard
+                  className={`w-4 h-4 transition-colors duration-200 ${
+                    isActive("/dashboard")
+                      ? "text-pink-400"
+                      : "group-hover:text-pink-400"
+                  }`}
+                />
                 <span className="text-sm font-medium">Dashboard</span>
               </Link>
 
               <Link
                 href="/datasets"
-                className="flex items-center gap-2 px-3 lg:px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group"
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 group ${
+                  isActive("/datasets")
+                    ? "bg-pink-500/10 text-pink-400"
+                    : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                }`}
               >
-                <Database className="w-4 h-4 group-hover:text-pink-400 transition-colors duration-200" />
+                <Database
+                  className={`w-4 h-4 transition-colors duration-200 ${
+                    isActive("/datasets")
+                      ? "text-pink-400"
+                      : "group-hover:text-pink-400"
+                  }`}
+                />
                 <span className="text-sm font-medium">My Datasets</span>
               </Link>
 
               <Link
                 href="/marketplace"
-                className="flex items-center gap-2 px-3 lg:px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group"
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 group ${
+                  isActive("/marketplace")
+                    ? "bg-pink-500/10 text-pink-400"
+                    : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                }`}
               >
-                <Megaphone className="w-4 h-4 group-hover:text-pink-400 transition-colors duration-200" />
+                <Megaphone
+                  className={`w-4 h-4 transition-colors duration-200 ${
+                    isActive("/marketplace")
+                      ? "text-pink-400"
+                      : "group-hover:text-pink-400"
+                  }`}
+                />
                 <span className="text-sm font-medium">Marketplace</span>
               </Link>
             </nav>
@@ -171,6 +209,9 @@ const Nav = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  window.location.href = "/datasets";
+                }}
                 className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-600/25"
               >
                 <Plus className="w-4 h-4" />
@@ -179,6 +220,9 @@ const Nav = () => {
 
               {/* Create Bounty Button - Tablet */}
               <motion.button
+                onClick={() => {
+                  window.location.href = "/datasets";
+                }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="hidden cursor-pointer md:flex lg:hidden items-center gap-1 px-3 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full font-medium text-sm transition-all duration-200"
@@ -189,6 +233,9 @@ const Nav = () => {
 
               {/* Create Bounty Button - Mobile */}
               <motion.button
+                onClick={() => {
+                  window.location.href = "/datasets";
+                }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="md:hidden px-3 py-2 bg-pink-500/90 hover:bg-pink-600 cursor-pointer text-white rounded-full transition-all duration-200"
@@ -303,7 +350,11 @@ const Nav = () => {
                 <Link
                   href="/dashboard"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    isActive("/dashboard")
+                      ? "bg-pink-500/10 text-pink-400"
+                      : "text-gray-300 hover:text-white hover:bg-gray-800"
+                  }`}
                 >
                   <LayoutDashboard className="w-5 h-5" />
                   <span className="font-medium">Dashboard</span>
@@ -312,7 +363,11 @@ const Nav = () => {
                 <Link
                   href="/datasets"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    isActive("/datasets")
+                      ? "bg-pink-500/10 text-pink-400"
+                      : "text-gray-300 hover:text-white hover:bg-gray-800"
+                  }`}
                 >
                   <Database className="w-5 h-5" />
                   <span className="font-medium">My Datasets</span>
@@ -321,13 +376,22 @@ const Nav = () => {
                 <Link
                   href="/marketplace"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    isActive("/marketplace")
+                      ? "bg-pink-500/10 text-pink-400"
+                      : "text-gray-300 hover:text-white hover:bg-gray-800"
+                  }`}
                 >
                   <Megaphone className="w-5 h-5" />
                   <span className="font-medium">Marketplace</span>
                 </Link>
 
-                <button className="flex items-center gap-3 w-full px-4 py-3 bg-pink-500 text-white cursor-pointer hover:bg-black rounded-full transition-all duration-200">
+                <button
+                  onClick={() => {
+                    window.location.href = "/datasets";
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-3 bg-pink-500 text-white cursor-pointer hover:bg-black rounded-full transition-all duration-200"
+                >
                   <Plus className="w-5 h-5" />
                   <span className="font-medium">Upload Dataset</span>
                 </button>
