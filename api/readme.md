@@ -1,0 +1,8 @@
+requirements
+
+fastapi==0.104.1
+uvicorn==0.24.0
+requests==2.31.0
+ipfshttpclient==0.8.0
+cryptography==41.0.7
+python-multipart==0.0.6
