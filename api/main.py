@@ -8,10 +8,41 @@ import os
 import base64
 import json
 import random  
-
+import torch
+import torchvision.models as models
+from transformers import BertTokenizer, BertForMaskedLM
+import torch
+import torchvision.transforms as transforms
+from torchvision.models import resnet50
+from transformers import BertTokenizer, BertForMaskedLM
+import pandas as pd
+from PIL import Image
+import io
+import numpy as np
 
 
 app = FastAPI(title="AI Dataset Verifier", version="0.1.0")
+
+print("Loading models...")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# BERT for text (Masked LM for perplexity-based quality)
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert_model = BertForMaskedLM.from_pretrained('bert-base-uncased').to(device)
+bert_model.eval()  # Inference mode
+
+# ResNet-50 for images (pre-trained ImageNet classifier)
+resnet = resnet50(pretrained=True).to(device)
+resnet.eval()
+resnet_transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+print("Models loaded!")
 
 class VerifyRequest(BaseModel):
     ipfsCid: str
