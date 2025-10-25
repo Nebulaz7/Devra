@@ -232,7 +232,7 @@ const avgQuality = calculateAverageQuality(datasets);
                       <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+                        className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
@@ -245,7 +245,7 @@ const avgQuality = calculateAverageQuality(datasets);
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                               currentPage === page
                                 ? 'bg-pink-600 text-white'
-                                : 'text-gray-600 hover:bg-white border border-gray-200'
+                                : 'text-gray-600 hover:bg-white border border-pink-500/20'
                             }`}
                           >
                             {page}
@@ -256,7 +256,7 @@ const avgQuality = calculateAverageQuality(datasets);
                       <button
                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+                        className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
