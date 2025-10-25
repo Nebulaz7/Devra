@@ -9,6 +9,8 @@ import base64
 import json
 import random  
 
+
+
 app = FastAPI(title="AI Dataset Verifier", version="0.1.0")
 
 class VerifyRequest(BaseModel):
@@ -52,7 +54,7 @@ async def verify_dataset(request: VerifyRequest):
         unpadder = padded_data.rstrip(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f" * 16)  # Simple unpad
         decrypted_data = unpadder.rstrip(b"\x10" * 16) 
         
-        
+
         score, status = ai_verify_data(decrypted_data)
         
         return VerifyResponse(score=score, status=status)
