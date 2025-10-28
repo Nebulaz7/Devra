@@ -6,3 +6,8 @@ requests==2.31.0
 ipfshttpclient==0.8.0
 cryptography==41.0.7
 python-multipart==0.0.6
+torch==2.1.0
+torchvision==0.16.0
+transformers==4.35.0
+pandas==2.1.3
+pillow==10.1.0
