@@ -3,8 +3,6 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
-
-
 @Injectable()
 export class RsaService {
   private readonly privateKeyPath = path.join(__dirname, './keys/private.pem');
@@ -22,7 +20,10 @@ export class RsaService {
     }
 
     // 🗝️ If keys don’t exist, generate new ones
-    if (!fs.existsSync(this.privateKeyPath) || !fs.existsSync(this.publicKeyPath)) {
+    if (
+      !fs.existsSync(this.privateKeyPath) ||
+      !fs.existsSync(this.publicKeyPath)
+    ) {
       const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
         modulusLength: 4096, // secure
         publicKeyEncoding: { type: 'pkcs1', format: 'pem' },

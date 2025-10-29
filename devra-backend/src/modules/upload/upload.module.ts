@@ -11,8 +11,16 @@ import { EncryptionModule } from '../encryption/encrypt.module';
 import { CrustModule } from '../crust/crust.module';
 
 @Module({
-  imports: [EncryptionModule, CrustModule ],
+  imports: [EncryptionModule, CrustModule],
   controllers: [UploadController],
-  providers: [UploadService, EncryptService, RsaService, DatasetRecordService, UploadQueueService, CrustService, ConfigService],
+  providers: [
+    UploadService,
+    EncryptService,
+    RsaService,
+    DatasetRecordService,
+    UploadQueueService,
+    CrustService,
+    ConfigService,
+  ],
 })
 export class UploadModule {}

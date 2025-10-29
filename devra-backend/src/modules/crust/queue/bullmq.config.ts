@@ -7,9 +7,9 @@ export const createBullMQConnection = (configService: ConfigService): Redis => {
 
   if (redisUrl) {
     const connection = new IORedis(redisUrl, {
-      maxRetriesPerRequest: null, 
-      enableReadyCheck: false, 
-      tls: redisUrl.startsWith('rediss://') ? {} : undefined, 
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      tls: redisUrl.startsWith('rediss://') ? {} : undefined,
     });
 
     console.log('✅ Connected to Redis via cloud URL');

@@ -16,11 +16,20 @@ import { CrustService } from '../crust/crust.service';
 
 @Controller('datasets')
 export class UploadController {
-  constructor(private readonly encryptService: EncryptService, private readonly datasetRecordService: DatasetRecordService, private readonly uploadQueueService: UploadQueueService, private readonly crustService: CrustService) {}
+  constructor(
+    private readonly encryptService: EncryptService,
+    private readonly datasetRecordService: DatasetRecordService,
+    private readonly uploadQueueService: UploadQueueService,
+    private readonly crustService: CrustService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadDataset(@UploadedFile() file: Express.Multer.File, @Req() req: Request, @Body() createDatasetDto: CreateDatasetDto): Promise<{
+  async uploadDataset(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Body() createDatasetDto: CreateDatasetDto,
+  ): Promise<{
     message?: string;
     metadata?: CreateDatasetDto;
     datasetRecord?;
@@ -34,10 +43,13 @@ export class UploadController {
 
     const encryptedPath = await this.encryptService.encryptDataset(file);
 
-    const datasetRecord = await this.datasetRecordService.createRecord(createDatasetDto, {
-     ...encryptedPath,
-     hash,
-    });
+    const datasetRecord = await this.datasetRecordService.createRecord(
+      createDatasetDto,
+      {
+        ...encryptedPath,
+        hash,
+      },
+    );
     console.log('🗂️  Dataset record created:', datasetRecord);
 
     await this.uploadQueueService.addJob({
