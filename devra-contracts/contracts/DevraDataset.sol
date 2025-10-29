@@ -10,20 +10,25 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @title DatasetNFT
  * @dev NFT contract for tokenizing datasets with AI verification and marketplace functionality
  */
-contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard {
+contract DatasetNFT is
+    ERC721,
+    ERC721URIStorage,
+    AccessControl,
+    ReentrancyGuard
+{
     // ============ State Variables ============
-    
+
     uint256 private _tokenIdCounter;
-    
+
     // Role definitions
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
-    
+
     // Royalty percentage for original creators (5%)
     uint256 public constant ROYALTY_PERCENTAGE = 5;
 
     // ============ Enums ============
-    
+
     enum VerificationStatus {
         PENDING,
         VERIFIED,
@@ -32,32 +37,32 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     }
 
     // ============ Structs ============
-    
+
     struct DatasetInfo {
-        string ipfsCid;           // IPFS CID of encrypted dataset
-        uint8 aiScore;            // AI quality score (0-100)
+        string ipfsCid; // IPFS CID of encrypted dataset
+        uint8 aiScore; // AI quality score (0-100)
         VerificationStatus status; // Current verification status
-        string name;              // Dataset name
-        string description;       // Dataset description
-        uint256 createdAt;        // Timestamp of creation
-        address originalCreator;  // Original dataset creator
+        string name; // Dataset name
+        string description; // Dataset description
+        uint256 createdAt; // Timestamp of creation
+        address originalCreator; // Original dataset creator
     }
 
     struct ListingInfo {
-        address seller;           // Current seller
-        uint256 price;            // Price in wei (native token)
-        address currencyToken;    // Token address (address(0) for native)
-        bool isActive;            // Whether listing is active
-        uint256 listedAt;         // Timestamp when listed
+        address seller; // Current seller
+        uint256 price; // Price in wei (native token)
+        address currencyToken; // Token address (address(0) for native)
+        bool isActive; // Whether listing is active
+        uint256 listedAt; // Timestamp when listed
     }
 
     // ============ Mappings ============
-    
+
     mapping(uint256 => DatasetInfo) public datasetMetadata;
     mapping(uint256 => ListingInfo) public listings;
 
     // ============ Events ============
-    
+
     event DatasetMinted(
         uint256 indexed tokenId,
         address indexed owner,
@@ -101,7 +106,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
         uint256 newPrice,
         uint256 timestamp
     );
-    
+
     event RoyaltyPaid(
         uint256 indexed tokenId,
         address indexed creator,
@@ -110,7 +115,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     );
 
     // ============ Constructor ============
-    
+
     constructor() ERC721("DatasetNFT", "DNFT") {
         // Grant the contract deployer the default admin role
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -131,7 +136,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     }
 
     // ============ Minting Functions ============
-    
+
     /**
      * @dev Mint a new dataset NFT
      * @param owner Address that will own the NFT
@@ -173,7 +178,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     }
 
     // ============ Verification Functions ============
-    
+
     /**
      * @dev Update verification status and AI score for a dataset
      * @param tokenId Token ID to update
@@ -196,7 +201,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     }
 
     // ============ Marketplace Functions ============
-    
+
     /**
      * @dev List a dataset NFT for sale
      * @param tokenId Token ID to list
@@ -222,7 +227,13 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
             listedAt: block.timestamp
         });
 
-        emit ListedForSale(tokenId, msg.sender, price, currencyToken, block.timestamp);
+        emit ListedForSale(
+            tokenId,
+            msg.sender,
+            price,
+            currencyToken,
+            block.timestamp
+        );
     }
 
     /**
@@ -231,7 +242,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      */
     function buyDataset(uint256 tokenId) public payable nonReentrant {
         require(_exists(tokenId), "Token does not exist");
-        
+
         ListingInfo storage listing = listings[tokenId];
         require(listing.isActive, "Not listed for sale");
         require(listing.currencyToken == address(0), "Must use native token");
@@ -263,18 +274,28 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
 
         // Transfer royalty to original creator (Interactions)
         if (royaltyAmount > 0) {
-            (bool royaltySuccess, ) = payable(creator).call{value: royaltyAmount}("");
+            (bool royaltySuccess, ) = payable(creator).call{
+                value: royaltyAmount
+            }("");
             require(royaltySuccess, "Royalty transfer failed");
             emit RoyaltyPaid(tokenId, creator, royaltyAmount, block.timestamp);
         }
 
         // Refund excess payment (Interactions)
         if (msg.value > price) {
-            (bool refundSuccess, ) = payable(msg.sender).call{value: msg.value - price}("");
+            (bool refundSuccess, ) = payable(msg.sender).call{
+                value: msg.value - price
+            }("");
             require(refundSuccess, "Refund failed");
         }
 
-        emit DatasetPurchased(tokenId, msg.sender, seller, price, block.timestamp);
+        emit DatasetPurchased(
+            tokenId,
+            msg.sender,
+            seller,
+            price,
+            block.timestamp
+        );
     }
 
     /**
@@ -283,10 +304,13 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      */
     function cancelListing(uint256 tokenId) public {
         require(_exists(tokenId), "Token does not exist");
-        
+
         ListingInfo storage listing = listings[tokenId];
         require(listing.isActive, "Not listed");
-        require(listing.seller == msg.sender || ownerOf(tokenId) == msg.sender, "Not authorized");
+        require(
+            listing.seller == msg.sender || ownerOf(tokenId) == msg.sender,
+            "Not authorized"
+        );
 
         listing.isActive = false;
 
@@ -301,7 +325,7 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     function updatePrice(uint256 tokenId, uint256 newPrice) public {
         require(_exists(tokenId), "Token does not exist");
         require(newPrice > 0, "Price must be greater than zero");
-        
+
         ListingInfo storage listing = listings[tokenId];
         require(listing.isActive, "Not listed");
         require(listing.seller == msg.sender, "Not the seller");
@@ -313,13 +337,15 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     }
 
     // ============ View Functions ============
-    
+
     /**
      * @dev Get dataset information
      * @param tokenId Token ID to query
      * @return DatasetInfo struct
      */
-    function getDatasetInfo(uint256 tokenId) public view returns (DatasetInfo memory) {
+    function getDatasetInfo(
+        uint256 tokenId
+    ) public view returns (DatasetInfo memory) {
         require(_exists(tokenId), "Token does not exist");
         return datasetMetadata[tokenId];
     }
@@ -329,7 +355,9 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      * @param tokenId Token ID to query
      * @return ListingInfo struct
      */
-    function getListingInfo(uint256 tokenId) public view returns (ListingInfo memory) {
+    function getListingInfo(
+        uint256 tokenId
+    ) public view returns (ListingInfo memory) {
         require(_exists(tokenId), "Token does not exist");
         return listings[tokenId];
     }
@@ -356,7 +384,9 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      * @param owner Address to query
      * @return Array of token IDs
      */
-    function getTokensByOwner(address owner) public view returns (uint256[] memory) {
+    function getTokensByOwner(
+        address owner
+    ) public view returns (uint256[] memory) {
         uint256 totalSupply = _tokenIdCounter;
         uint256 tokenCount = balanceOf(owner);
         uint256[] memory tokenIds = new uint256[](tokenCount);
@@ -373,12 +403,14 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     }
 
     // ============ Admin Functions ============
-    
+
     /**
      * @dev Grant minter role to an address (admin only)
      * @param account Address to grant role to
      */
-    function grantMinterRole(address account) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantMinterRole(
+        address account
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         grantRole(MINTER_ROLE, account);
     }
 
@@ -386,7 +418,9 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      * @dev Grant verifier role to an address (admin only)
      * @param account Address to grant role to
      */
-    function grantVerifierRole(address account) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantVerifierRole(
+        address account
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         grantRole(VERIFIER_ROLE, account);
     }
 
@@ -394,7 +428,9 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      * @dev Revoke minter role from an address (admin only)
      * @param account Address to revoke role from
      */
-    function revokeMinterRole(address account) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeMinterRole(
+        address account
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(MINTER_ROLE, account);
     }
 
@@ -402,22 +438,23 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
      * @dev Revoke verifier role from an address (admin only)
      * @param account Address to revoke role from
      */
-    function revokeVerifierRole(address account) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeVerifierRole(
+        address account
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(VERIFIER_ROLE, account);
     }
 
     // ============ Override Functions ============
-    
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         override(ERC721, ERC721URIStorage, AccessControl)
@@ -429,19 +466,21 @@ contract DatasetNFT is ERC721, ERC721URIStorage, AccessControl, ReentrancyGuard 
     /**
      * @dev Override _update to automatically cancel listings when NFT is transferred
      */
-    function _update(address to, uint256 tokenId, address auth)
-        internal
-        override
-        returns (address)
-    {
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal override returns (address) {
         address from = _ownerOf(tokenId);
-        
+
         // Cancel listing if token is being transferred (not minting or burning)
-        if (from != address(0) && to != address(0) && listings[tokenId].isActive) {
+        if (
+            from != address(0) && to != address(0) && listings[tokenId].isActive
+        ) {
             listings[tokenId].isActive = false;
             emit ListingCancelled(tokenId, from, block.timestamp);
         }
-        
+
         return super._update(to, tokenId, auth);
     }
 }
