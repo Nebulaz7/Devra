@@ -12,3 +12,5 @@ Pillow
 pydantic
 requests
 ipfshttpclient
+pyarrow
+openpyxl

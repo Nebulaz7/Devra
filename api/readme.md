@@ -11,3 +11,5 @@ torchvision==0.16.0
 transformers==4.35.0
 pandas==2.1.3
 pillow==10.1.0
+pyarrow==14.0.1
+openpyxl==3.1.2
