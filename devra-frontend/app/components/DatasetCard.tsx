@@ -1,7 +1,7 @@
-import React from 'react';
-import Avvvatars from 'avvvatars-react';
-import Link from 'next/link';
-import { truncateAddress } from '@aptos-labs/wallet-adapter-react';
+import React from "react";
+import Avvvatars from "avvvatars-react";
+import Link from "next/link";
+import { truncateAddress } from "@aptos-labs/wallet-adapter-react";
 
 interface CampaignCardProps {
   campaign: {
@@ -24,10 +24,10 @@ interface CampaignCardProps {
 
 const CampaignCard: React.FC<CampaignCardProps> = ({ campaign }) => {
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -56,8 +56,12 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign }) => {
         </div>
 
         <ul className="flex items-center justify-between gap-2 text-xs mt-3">
-          <li className="bg-pink-600 backdrop-blur-sm p-1 px-3 rounded-md">FDC Verification</li>
-          <li className="bg-pink-600 backdrop-blur-sm p-1 px-3 rounded-md">AI Verification</li>
+          <li className="bg-pink-600 backdrop-blur-sm p-1 px-3 rounded-md">
+            FDC Verification
+          </li>
+          <li className="bg-pink-600 backdrop-blur-sm p-1 px-3 rounded-md">
+            AI Verification
+          </li>
         </ul>
 
         <div className="grid grid-cols-2 gap-4 mt-6 ml-2">

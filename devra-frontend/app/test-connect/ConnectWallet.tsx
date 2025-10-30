@@ -42,7 +42,7 @@ export const ConnectWallet = () => {
             value={selectedAccount?.address}
             onChange={(e) => {
               const selected = accounts.find(
-                (acc) => acc.address === e.target.value
+                (acc) => acc.address === e.target.value,
               );
               if (selected) {
                 setSelectedAccount(selected);

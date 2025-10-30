@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Database,
   FileText,
@@ -9,11 +9,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
-} from 'lucide-react';
-import { truncateAddress } from '@aptos-labs/wallet-adapter-react';
+} from "lucide-react";
+import { truncateAddress } from "@aptos-labs/wallet-adapter-react";
 
-
-type StatusType = 'Low' | 'Medium' | 'High';
+type StatusType = "Low" | "Medium" | "High";
 
 interface Dataset {
   id: number;
@@ -29,29 +28,120 @@ export default function Datasets() {
 
   const itemsPerPage = 10;
 
-const randomHex = (len = 40) => Array.from({ length: len })
-  .map(() => Math.floor(Math.random() * 16).toString(16))
-  .join('');
+  const randomHex = (len = 40) =>
+    Array.from({ length: len })
+      .map(() => Math.floor(Math.random() * 16).toString(16))
+      .join("");
 
-const randomAddress = () => `0x${randomHex(40)}`;
+  const randomAddress = () => `0x${randomHex(40)}`;
 
-const [datasets] = useState<Dataset[]>(() => [
-  { id: 1, name: 'echo_list_extracted.zip', score: '75%', creator: randomAddress(), date: 'Oct 7, 2025 14:32' },
-  { id: 2, name: 'TAVARI – The Intelligent Agent Hub.zip', score: '75%', creator: randomAddress(), date: 'Oct 7, 2025 14:28' },
-  { id: 3, name: 'firefox229363password.zip', score: '40%', creator: randomAddress(), date: 'Oct 7, 2025 14:15' },
-  { id: 4, name: 'customer_feedback_dataset.zip', score: '88%', creator: randomAddress(), date: 'Oct 7, 2025 13:45' },
-  { id: 5, name: 'social_media_comments.zip', score: '62%', creator: randomAddress(), date: 'Oct 7, 2025 12:20' },
-  { id: 6, name: 'product_reviews_cleaned.zip', score: '91%', creator: randomAddress(), date: 'Oct 7, 2025 11:58' },
-  { id: 7, name: 'user_generated_content.zip', score: '35%', creator: randomAddress(), date: 'Oct 7, 2025 11:22' },
-  { id: 8, name: 'support_tickets_archive.zip', score: '78%', creator: randomAddress(), date: 'Oct 7, 2025 10:45' },
-  { id: 9, name: 'forum_posts_batch_01.zip', score: '82%', creator: randomAddress(), date: 'Oct 7, 2025 09:30' },
-  { id: 10, name: 'chat_logs_anonymized.zip', score: '58%', creator: randomAddress(), date: 'Oct 7, 2025 09:12' },
-  { id: 11, name: 'email_dataset_filtered.zip', score: '93%', creator: randomAddress(), date: 'Oct 6, 2025 18:45' },
-  { id: 12, name: 'survey_responses_2025.zip', score: '67%', creator: randomAddress(), date: 'Oct 6, 2025 17:20' },
-  { id: 13, name: 'moderation_queue_export.zip', score: '28%', creator: randomAddress(), date: 'Oct 6, 2025 16:55' },
-  { id: 14, name: 'wiki_comments_sample.zip', score: '85%', creator: randomAddress(), date: 'Oct 6, 2025 15:30' },
-  { id: 15, name: 'blog_posts_collection.zip', score: '72%', creator: randomAddress(), date: 'Oct 6, 2025 14:18' },
-]);
+  const [datasets] = useState<Dataset[]>(() => [
+    {
+      id: 1,
+      name: "echo_list_extracted.zip",
+      score: "75%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 14:32",
+    },
+    {
+      id: 2,
+      name: "TAVARI – The Intelligent Agent Hub.zip",
+      score: "75%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 14:28",
+    },
+    {
+      id: 3,
+      name: "firefox229363password.zip",
+      score: "40%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 14:15",
+    },
+    {
+      id: 4,
+      name: "customer_feedback_dataset.zip",
+      score: "88%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 13:45",
+    },
+    {
+      id: 5,
+      name: "social_media_comments.zip",
+      score: "62%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 12:20",
+    },
+    {
+      id: 6,
+      name: "product_reviews_cleaned.zip",
+      score: "91%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 11:58",
+    },
+    {
+      id: 7,
+      name: "user_generated_content.zip",
+      score: "35%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 11:22",
+    },
+    {
+      id: 8,
+      name: "support_tickets_archive.zip",
+      score: "78%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 10:45",
+    },
+    {
+      id: 9,
+      name: "forum_posts_batch_01.zip",
+      score: "82%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 09:30",
+    },
+    {
+      id: 10,
+      name: "chat_logs_anonymized.zip",
+      score: "58%",
+      creator: randomAddress(),
+      date: "Oct 7, 2025 09:12",
+    },
+    {
+      id: 11,
+      name: "email_dataset_filtered.zip",
+      score: "93%",
+      creator: randomAddress(),
+      date: "Oct 6, 2025 18:45",
+    },
+    {
+      id: 12,
+      name: "survey_responses_2025.zip",
+      score: "67%",
+      creator: randomAddress(),
+      date: "Oct 6, 2025 17:20",
+    },
+    {
+      id: 13,
+      name: "moderation_queue_export.zip",
+      score: "28%",
+      creator: randomAddress(),
+      date: "Oct 6, 2025 16:55",
+    },
+    {
+      id: 14,
+      name: "wiki_comments_sample.zip",
+      score: "85%",
+      creator: randomAddress(),
+      date: "Oct 6, 2025 15:30",
+    },
+    {
+      id: 15,
+      name: "blog_posts_collection.zip",
+      score: "72%",
+      creator: randomAddress(),
+      date: "Oct 6, 2025 14:18",
+    },
+  ]);
 
   const totalPages = Math.ceil(datasets.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -59,38 +149,41 @@ const [datasets] = useState<Dataset[]>(() => [
   const currentDatasets = datasets.slice(startIndex, endIndex);
 
   const parseScoreValue = (score: string | number) => {
-  if (typeof score === 'number') {
-    return score <= 1 ? score * 100 : score;
-  }
-  const s = String(score).trim();
-  if (s.endsWith('%')) {
-    const n = parseFloat(s.slice(0, -1));
-    return Number.isNaN(n) ? 0 : n;
-  }
-  const n = parseFloat(s);
-  if (Number.isNaN(n)) return 0;
-  return n <= 1 ? n * 100 : n;
+    if (typeof score === "number") {
+      return score <= 1 ? score * 100 : score;
+    }
+    const s = String(score).trim();
+    if (s.endsWith("%")) {
+      const n = parseFloat(s.slice(0, -1));
+      return Number.isNaN(n) ? 0 : n;
+    }
+    const n = parseFloat(s);
+    if (Number.isNaN(n)) return 0;
+    return n <= 1 ? n * 100 : n;
   };
 
-const calculateAverageQuality = (items: Dataset[]) => {
-  if (!items.length) return '0%';
-  const total = items.reduce((acc, it) => acc + parseScoreValue(it.score), 0);
-  const avg = total / items.length;
-  return `${avg.toFixed(0)}%`; // round to nearest percent; change to toFixed(1) for one decimal
-};
+  const calculateAverageQuality = (items: Dataset[]) => {
+    if (!items.length) return "0%";
+    const total = items.reduce((acc, it) => acc + parseScoreValue(it.score), 0);
+    const avg = total / items.length;
+    return `${avg.toFixed(0)}%`; // round to nearest percent; change to toFixed(1) for one decimal
+  };
 
-const avgQuality = calculateAverageQuality(datasets);
+  const avgQuality = calculateAverageQuality(datasets);
 
-// ...existing code...
+  // ...existing code...
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-24">
       <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
         <FolderOpen className="w-12 h-12 text-gray-400" />
       </div>
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">No uploads yet</h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+        No uploads yet
+      </h3>
       <p className="text-gray-500 mb-8 text-center max-w-md">
-        Start by uploading your first dataset to begin analyzing quality, structure, and toxicity.
+        Start by uploading your first dataset to begin analyzing quality,
+        structure, and toxicity.
       </p>
       <button
         onClick={() => setUploadModalOpen(true)}
@@ -112,7 +205,10 @@ const avgQuality = calculateAverageQuality(datasets);
               <Database className="w-10 h-10 text-pink-500" />
               <h1 className="text-4xl font-bold text-white">My Datasets</h1>
             </div>
-            <p className="text-gray-400">Manage your purchased and minted datasets on the decentralized marketplace</p>
+            <p className="text-gray-400">
+              Manage your purchased and minted datasets on the decentralized
+              marketplace
+            </p>
           </div>
 
           {/* Stats Overview */}
@@ -121,7 +217,9 @@ const avgQuality = calculateAverageQuality(datasets);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm">Total Datasets</p>
-                  <p className="text-3xl font-bold text-white">{datasets.length}</p>
+                  <p className="text-3xl font-bold text-white">
+                    {datasets.length}
+                  </p>
                 </div>
                 <Database className="w-8 h-8 text-pink-600" />
               </div>
@@ -155,118 +253,131 @@ const avgQuality = calculateAverageQuality(datasets);
             </div>
           </div>
 
-            <div className="rounded-2xl shadow-sm border border-pink-500/20 overflow-hidden">
-              {datasets.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="text-white border-b border-pink-500/20">
-                        <tr>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                            Dataset Name
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                            Score
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                            Creator
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                            Date
-                          </th>
+          <div className="rounded-2xl shadow-sm border border-pink-500/20 overflow-hidden">
+            {datasets.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="text-white border-b border-pink-500/20">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                          Dataset Name
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                          Score
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                          Creator
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                          Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-pink-500/20">
+                      {currentDatasets.map((dataset) => (
+                        <tr key={dataset.id} className="transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <FolderOpen className="w-5 h-5 text-pink-600" />
+                              </div>
+                              <span className="text-sm font-medium text-white truncate max-w-md">
+                                {dataset.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-pink-600" />
+                              <span className="text-sm font-semibold text-white">
+                                {dataset.score}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-2 h-2 rounded-full bg-pink-600"
+                                aria-hidden="true"
+                              />
+                              <span
+                                title={dataset.creator}
+                                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border border-pink-600 text-white"
+                              >
+                                {truncateAddress(dataset.creator)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2 text-sm text-white">
+                              <Calendar className="w-4 h-4 text-pink-600" />
+                              {dataset.date}
+                            </div>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-pink-500/20">
-                        {currentDatasets.map((dataset) => (
-                          <tr key={dataset.id} className="transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <FolderOpen className="w-5 h-5 text-pink-600" />
-                                </div>
-                                <span className="text-sm font-medium text-white truncate max-w-md">
-                                  {dataset.name}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="w-4 h-4 text-pink-600" />
-                                <span className="text-sm font-semibold text-white">
-                                  {dataset.score}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                               <span className="w-2 h-2 rounded-full bg-pink-600" aria-hidden="true" />
-                                  <span
-                                    title={dataset.creator}
-                                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border border-pink-600 text-white"
-                                  >
-                               {truncateAddress(dataset.creator)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2 text-sm text-white">
-                                <Calendar className="w-4 h-4 text-pink-600" />
-                                {dataset.date}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="px-6 py-4 border-t border-pink-500/20 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing{" "}
+                    <span className="font-medium">{startIndex + 1}</span> to{" "}
+                    <span className="font-medium">
+                      {Math.min(endIndex, datasets.length)}
+                    </span>{" "}
+                    of <span className="font-medium">{datasets.length}</span>{" "}
+                    datasets
                   </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
+                      disabled={currentPage === 1}
+                      className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
 
-                  <div className="px-6 py-4 border-t border-pink-500/20 flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-                      <span className="font-medium">{Math.min(endIndex, datasets.length)}</span> of{' '}
-                      <span className="font-medium">{datasets.length}</span> datasets
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (page) => (
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                               currentPage === page
-                                ? 'bg-pink-600 text-white'
-                                : 'text-gray-600 hover:bg-white border border-pink-500/20'
+                                ? "bg-pink-600 text-white"
+                                : "text-gray-600 hover:bg-white border border-pink-500/20"
                             }`}
                           >
                             {page}
                           </button>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                        ),
+                      )}
                     </div>
+
+                    <button
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                      className="p-2 text-gray-600 hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
+    </div>
   );
 }

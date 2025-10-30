@@ -141,7 +141,7 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
               onClick={() =>
                 window.open(
                   //      `https://calibration.filscan.io/address/${walletAddress}`,
-                  "_blank"
+                  "_blank",
                 )
               }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-xs sm:text-sm w-fit text-gray-300 hover:text-white group"

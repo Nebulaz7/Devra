@@ -17,58 +17,62 @@ const Page = () => {
     }
   };
 
-const handleSubmit = async () => {
-  if (!file) return;
-  
-  setUploading(true);
-  setError(null);
-  setResponse(null);
-  
-  try {
-    console.log('Preparing to upload file:', file.name);
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Make sure these fields match exactly what the CreateDatasetDto expects in the backend
-    formData.append('owner', 'test-wallet-address');
-    formData.append('name', file.name);
-    formData.append('description', 'Uploaded from test interface');
-    
-    // Log what we're sending
-    console.log('Sending file with size:', file.size);
-    console.log('FormData contains file?', formData.has('file'));
-    
-    const response = await fetch('http://localhost:5000/datasets/upload', {
-      method: 'POST',
-      body: formData,
-      // Remove explicit headers to let browser handle multipart/form-data correctly
-    });
-    
-    console.log('Response status:', response.status);
-    
-    // Try to get response data even if there's an error
-    let data;
+  const handleSubmit = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    setResponse(null);
+
     try {
-      data = await response.json();
-      console.log('Response data:', data);
-    } catch (jsonErr) {
-      console.error('Error parsing JSON response:', jsonErr);
-      data = null;
+      console.log("Preparing to upload file:", file.name);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Make sure these fields match exactly what the CreateDatasetDto expects in the backend
+      formData.append("owner", "test-wallet-address");
+      formData.append("name", file.name);
+      formData.append("description", "Uploaded from test interface");
+
+      // Log what we're sending
+      console.log("Sending file with size:", file.size);
+      console.log("FormData contains file?", formData.has("file"));
+
+      const response = await fetch("http://localhost:5000/datasets/upload", {
+        method: "POST",
+        body: formData,
+        // Remove explicit headers to let browser handle multipart/form-data correctly
+      });
+
+      console.log("Response status:", response.status);
+
+      // Try to get response data even if there's an error
+      let data;
+      try {
+        data = await response.json();
+        console.log("Response data:", data);
+      } catch (jsonErr) {
+        console.error("Error parsing JSON response:", jsonErr);
+        data = null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || `Server responded with ${response.status}`,
+        );
+      }
+
+      setResponse(data);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred",
+      );
+    } finally {
+      setUploading(false);
     }
-    
-    if (!response.ok) {
-      throw new Error(data?.error || `Server responded with ${response.status}`);
-    }
-    
-    setResponse(data);
-  } catch (err) {
-    console.error('Upload error:', err);
-    setError(err instanceof Error ? err.message : 'An unknown error occurred');
-  } finally {
-    setUploading(false);
-  }
-};
+  };
 
   const removeFile = () => {
     setFile(null);
@@ -136,8 +140,12 @@ const handleSubmit = async () => {
         {/* Success Response */}
         {response && (
           <div className="mb-4 p-3 bg-green-900/30 border border-green-800 rounded-lg">
-            <p className="text-green-400 text-sm font-medium">Encryption successful</p>
-            <p className="text-gray-400 text-xs mt-1">Path: {response.encryptedPath}</p>
+            <p className="text-green-400 text-sm font-medium">
+              Encryption successful
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              Path: {response.encryptedPath}
+            </p>
           </div>
         )}
 

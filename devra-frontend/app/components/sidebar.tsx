@@ -77,7 +77,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
 
   const formatAddress = (
     address: string,
-    length: "short" | "medium" | "long" = "medium"
+    length: "short" | "medium" | "long" = "medium",
   ) => {
     if (length === "short") {
       return `${address.slice(0, 4)}...${address.slice(-2)}`;
