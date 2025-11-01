@@ -6,7 +6,9 @@ export class CrustController {
   constructor(private readonly uploadQueueService: UploadQueueService) {}
 
   @Post('upload')
-  async scheduleUpload(@Body() body: { filePath: string; metadata?: any }) {
+  async scheduleUpload(
+    @Body() body: { filePath: string; metadata?: Record<string, unknown> },
+  ) {
     if (!body || !body.filePath) {
       return { error: 'filePath is required' };
     }

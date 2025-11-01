@@ -181,7 +181,7 @@ const ActiveCampaigns = () => {
   const [isRefetching, setIsRefetching] = useState(false);
   const [campaigns] = useState(mockCampaigns);
   const [activeTab, setActiveTab] = useState<"Recent" | "Popular" | "Trending">(
-    "Recent"
+    "Recent",
   );
 
   const handleRefresh = () => {

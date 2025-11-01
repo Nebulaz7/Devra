@@ -1,9 +1,11 @@
 # Hackathon MVP Dev Plan
+
 ## Decentralized Dataset Marketplace with AI Verification
 
 ---
 
 ## Table of Contents
+
 1. [Project Overview](#project-overview)
 2. [High-Level Application Flow](#high-level-application-flow)
 3. [Core Architecture](#core-architecture)
@@ -21,6 +23,7 @@
 ## Project Overview
 
 Building a decentralized marketplace where:
+
 - **Data owners** can encrypt and list datasets as NFTs
 - **AI models** verify data quality before the NFT is finalized
 - **Buyers** can purchase NFTs and receive decryption keys
@@ -103,6 +106,7 @@ Building a decentralized marketplace where:
 ## Core Architecture
 
 ### Technology Stack
+
 - **Blockchain**: Polkadot Asset Hub (Westend Asset Hub for testing) using its native pallets (nfts, Utility, Assets)
 - **Storage**: IPFS via Crust Network
 - **Frontend**: React/Next.js with Polkadot-API (PAPI)
@@ -140,17 +144,17 @@ The `nfts` pallet on Asset Hub will manage this data. The backend will be respon
 
 ### Backend API Endpoints
 
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| POST | `/list` | Submit new dataset for listing | `{ name, description, price, file }` | `{ success, collectionId, itemId, ipfsCid }` |
-| GET | `/datasets` | Fetch all listed datasets | None | `{ datasets: [...] }` |
-| GET | `/dataset/{id}` | Get details for specific dataset | None | `{ dataset: {...} }` |
+| Method | Endpoint        | Description                      | Request Body                         | Response                                     |
+| ------ | --------------- | -------------------------------- | ------------------------------------ | -------------------------------------------- |
+| POST   | `/list`         | Submit new dataset for listing   | `{ name, description, price, file }` | `{ success, collectionId, itemId, ipfsCid }` |
+| GET    | `/datasets`     | Fetch all listed datasets        | None                                 | `{ datasets: [...] }`                        |
+| GET    | `/dataset/{id}` | Get details for specific dataset | None                                 | `{ dataset: {...} }`                         |
 
 ### AI Model API Endpoint
 
-| Method | Endpoint | Description | Request Body | Response |
-|--------|----------|-------------|--------------|----------|
-| POST | `/verify` | Verify dataset quality | `{ ipfsCid, tempDecryptionKey }` | `{ score: uint8, status: string }` |
+| Method | Endpoint  | Description            | Request Body                     | Response                           |
+| ------ | --------- | ---------------------- | -------------------------------- | ---------------------------------- |
+| POST   | `/verify` | Verify dataset quality | `{ ipfsCid, tempDecryptionKey }` | `{ score: uint8, status: string }` |
 
 ---
 
@@ -161,17 +165,21 @@ The `nfts` pallet on Asset Hub will manage this data. The backend will be respon
 ### Blockchain Team
 
 #### 1. Setup Environment
+
 - Install Node.js
 - Set up a project with Polkadot-API (PAPI)
 - This will be used to construct and send transactions (extrinsics)
 
 #### 2. Learn Pallet Interactions
+
 Familiarize with the key extrinsics on Asset Hub using the Polkadot-JS UI:
+
 - `nfts.create`, `nfts.mint`, `nfts.setAttribute`, `nfts.setPrice`
 - `utility.batchAll` for atomic swaps
 - `assets.transfer` for payments in other tokens (e.g., USDC)
 
 #### 3. Get Testnet Funds
+
 - Create a wallet with Polkadot{.js} extension
 - Connect to Westend Asset Hub (the testnet for Asset Hub)
 - Use a faucet to get WND (Westies) for transaction fees
@@ -179,37 +187,44 @@ Familiarize with the key extrinsics on Asset Hub using the Polkadot-JS UI:
 ### Frontend Team
 
 #### 1. Setup Environment
+
 - Create new React/Next.js app
 - Install Polkadot-API (PAPI) for wallet interaction
 
 #### 2. Build UI Mockups
+
 - Marketplace gallery page
 - Sell/List dataset page
 - Dataset detail page
 - Focus on layout structure
 
 #### 3. Wallet Connection
+
 - Implement "Connect Wallet" button using the Polkadot{.js} extension
 - Display user's wallet address
 
 ### AI/ML Team
 
 #### 1. Containerize Model
+
 - Wrap AI model in Docker container
 - Create simple API endpoint (Flask/FastAPI)
 - Return placeholder score initially
 
 #### 2. Test Local API
+
 - Verify request/response flow
 - Document exact input/output format
 
 ### Backend Team
 
 #### 1. Setup Environment
+
 - Create Node.js/Express server (or NestJS for more structure)
 - Define placeholder routes for all endpoints
 
 #### 2. Decentralized Storage Setup
+
 - Set up Crust Network account
 - Obtain API keys for IPFS W3Auth Gateway
 - Test basic upload/retrieve operations
@@ -223,21 +238,27 @@ Familiarize with the key extrinsics on Asset Hub using the Polkadot-JS UI:
 ### Blockchain Team
 
 #### 1. Construct Transactions
+
 Write scripts using Polkadot-API (PAPI) to create transactions for:
+
 - `nfts.create` (to create a collection for a new seller)
 - `nfts.mint` (to mint the dataset NFT)
 - `nfts.setAttribute` (to add metadata like IPFS CID and AI score)
 - `nfts.setPrice` (to list the NFT for sale)
 
 #### 2. Develop Atomic Swap Logic
+
 Construct a `utility.batchAll` transaction that combines:
+
 - `assets.transfer` (for payment, e.g., USDC)
 - `nfts.buyItem` (to transfer the NFT)
 
 This ensures a buyer only pays if they receive the NFT.
 
 #### 3. Provide Helper Functions
+
 Create a simple library of functions for the Backend Team to call:
+
 - `mintNft(metadata)`
 - `buyNft(nftId)`
 - `setNftAttribute(nftId, key, value)`
@@ -245,11 +266,13 @@ Create a simple library of functions for the Backend Team to call:
 ### Frontend Team
 
 #### 1. Implement Listing Form
+
 - Build seller input form (name, description, price)
 - Add file upload logic
 - Wire to backend API
 
 #### 2. Build Marketplace View
+
 - Fetch data from `GET /datasets`
 - Display datasets in grid/list format
 - Create dataset detail page
@@ -257,11 +280,13 @@ Create a simple library of functions for the Backend Team to call:
 ### AI/ML Team
 
 #### 1. Refine AI Model
+
 - Fine-tune for hackathon demo
 - Process sample datasets
 - Return meaningful quality scores
 
 #### 2. Finalize API
+
 - Implement `POST /verify` endpoint
 - Receive IPFS CID
 - Fetch data, analyze, return score
@@ -269,6 +294,7 @@ Create a simple library of functions for the Backend Team to call:
 ### Backend Team
 
 #### 1. Setup Environment
+
 - Initialize a NestJS project with a modular structure (dataset, encryption, ipfs, validation, deduplication)
 - Configure `.env` file for Crust IPFS credentials and other secrets
 - Install core dependencies:
@@ -278,12 +304,14 @@ Create a simple library of functions for the Backend Team to call:
 - Set up a temporary `/tmp` directory for encrypted files
 
 #### 2. Dataset Upload Flow
+
 - Create `DatasetController` with `/datasets/upload` endpoint
 - Accept dataset file + metadata using Multer
 - Validate request inputs (ensure file and metadata are present)
 - Log file details (e.g., name, size, uploader) for tracking
 
 #### 3. Encryption Layer (Security Core)
+
 - Implement `EncryptionService` using AES-256-CBC algorithm
 - Generate a unique encryption key and IV for each dataset
 - Encrypt dataset buffer and save the encrypted file temporarily in `/tmp`
@@ -291,19 +319,23 @@ Create a simple library of functions for the Backend Team to call:
 - Keep encryption logic modular for future algorithm upgrades
 
 #### 4. Deduplication System
+
 - Compute a SHA-256 hash of each uploaded dataset before encryption
 - Check existing records in the database for duplicate hashes
 - Reject duplicate uploads to prevent spam or redundant storage
 - Continue encryption + upload only if dataset is unique
 
 #### 5. Decentralized Storage Integration
+
 - Implement `IpfsService` to handle file uploads to Crust Network (IPFS)
 - Upload the encrypted dataset through the Crust W3Auth gateway
 - Retrieve and verify the IPFS CID after upload
 - Store CID, file hash, filename, uploader, and timestamp in the database
 
 #### 6. Dataset Metadata & Persistence
+
 Create Dataset entity/model (using Prisma or TypeORM). Store dataset metadata fields:
+
 - `filename`
 - `hash`
 - `cid`
@@ -314,6 +346,7 @@ Create Dataset entity/model (using Prisma or TypeORM). Store dataset metadata fi
 Keep AES key and IV stored securely (not publicly exposed). Return a success response with the CID and relevant dataset info.
 
 #### 7. AI Validation Integration
+
 - Connect the backend to the AI/ML API (FastAPI container)
 - Send dataset CID and temporary decryption key for analysis
 - Receive validation results (e.g., quality score, status, category)
@@ -328,6 +361,7 @@ Keep AES key and IV stored securely (not publicly exposed). Return a success res
 ### Blockchain Team
 
 #### Support & Debug
+
 - Assist Frontend/Backend with transaction construction and signing
 - Verify transactions on the Westend Asset Hub block explorer
 - Help debug any on-chain errors
@@ -335,14 +369,17 @@ Keep AES key and IV stored securely (not publicly exposed). Return a success res
 ### Frontend Team
 
 #### 1. Connect to Backend
+
 - Wire "List Dataset" form to `POST /list`
 - Ensure marketplace displays backend data correctly
 
 #### 2. Connect to Blockchain
+
 - Integrate Polkadot-API (PAPI) to sign and send the `utility.batchAll` transaction when a user clicks "Buy"
 - Handle transaction signing via the user's Polkadot{.js} wallet
 
 #### 3. Polish UI/UX
+
 - Add loading spinners
 - Success/error notifications
 - Responsive design touches
@@ -350,6 +387,7 @@ Keep AES key and IV stored securely (not publicly exposed). Return a success res
 ### AI/ML Team
 
 #### Support & Debug
+
 - Work with Backend on API integration
 - Monitor AI server logs
 - Optimize response times
@@ -357,10 +395,12 @@ Keep AES key and IV stored securely (not publicly exposed). Return a success res
 ### Backend Team
 
 #### 1. Finalize Integrations
+
 - Complete full sequence: Frontend → Backend → IPFS → AI → Blockchain (Asset Hub)
 - Ensure all handoffs work smoothly
 
 #### 2. Error Handling
+
 - Implement robust error handling
 - Handle AI model failures
 - Handle blockchain transaction errors
@@ -371,21 +411,25 @@ Keep AES key and IV stored securely (not publicly exposed). Return a success res
 ## Team Responsibilities
 
 ### Blockchain Team
+
 - Constructing and managing transactions with Asset Hub pallets
 - Testing interactions on the testnet
 - Documenting transaction structures for the backend team
 
 ### Frontend Team
+
 - User interface and experience
 - Wallet integration (Polkadot{.js})
 - API consumption and state management
 
 ### AI/ML Team
+
 - Dataset quality verification
 - API endpoint for verification service
 - Model optimization and containerization
 
 ### Backend Team
+
 - API development and orchestration
 - IPFS/Crust integration
 - Bridge between frontend, AI, and blockchain (Asset Hub)
@@ -423,4 +467,4 @@ Keep AES key and IV stored securely (not publicly exposed). Return a success res
 
 ---
 
-*Good luck! Build fast, ship faster.* 🚀
+_Good luck! Build fast, ship faster._ 🚀

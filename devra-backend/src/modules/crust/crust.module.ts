@@ -9,7 +9,12 @@ import { DatasetRecordService } from '../encryption/dataset-record.service';
 @Module({
   imports: [ConfigModule.forRoot()],
   controllers: [CrustController],
-  providers: [CrustService, UploadQueueService, UploadProcessor, DatasetRecordService],
+  providers: [
+    CrustService,
+    UploadQueueService,
+    UploadProcessor,
+    DatasetRecordService,
+  ],
   exports: [UploadQueueService],
 })
 export class CrustModule {}

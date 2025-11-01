@@ -16,7 +16,7 @@ interface PolkadotContextType {
 
 // Create the context with a default value
 const PolkadotContext = createContext<PolkadotContextType | undefined>(
-  undefined
+  undefined,
 );
 
 // Create the provider component
@@ -35,7 +35,7 @@ export const usePolkadotContext = () => {
   const context = useContext(PolkadotContext);
   if (context === undefined) {
     throw new Error(
-      "usePolkadotContext must be used within a PolkadotProvider"
+      "usePolkadotContext must be used within a PolkadotProvider",
     );
   }
   return context;

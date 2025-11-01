@@ -4,8 +4,6 @@ import { Queue } from 'bullmq';
 import type { Redis } from 'ioredis';
 import { createBullMQConnection } from './bullmq.config';
 
-
-
 export interface UploadJobData {
   datasetId?: string;
   filePath: string;
