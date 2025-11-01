@@ -1,4 +1,7 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 interface VaultResponse {
   data: {
@@ -14,14 +17,8 @@ const VAULT_TOKEN = process.env.VAULT_TOKEN;
 if (!VAULT_TOKEN) {
   console.warn('⚠️  VAULT_TOKEN not set in environment variables.');
 }
-
 const headers = { 'X-Vault-Token': VAULT_TOKEN };
 
-/**
- * Store an encryption key in Vault
- * @param keyName The name/path for the key (e.g. "ipfs-key")
- * @param keyValue The encryption key value
- */
 export async function storeKey(
   keyName: string,
   keyValue: string,

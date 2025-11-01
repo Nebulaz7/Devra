@@ -10,12 +10,13 @@ export class EncryptService {
   private readonly algorithm = 'aes-256-gcm';
   constructor(private readonly rsaService: RsaService) {}
 
-  hashDataset(file: Express.Multer.File): string {
-    const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
-    return hash;
+  async hashDataset(file: Express.Multer.File): Promise<string> {
+    const hash = crypto.createHash('sha256');
+    hash.update(file.buffer);
+    return Promise.resolve(hash.digest('hex'));
   }
 
-  encryptDataset(file: Express.Multer.File): Promise<EncryptedFileDto> {
+  async encryptDataset(file: Express.Multer.File): Promise<EncryptedFileDto> {
     const aesKey = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
 
@@ -37,7 +38,7 @@ export class EncryptService {
     fs.mkdirSync(path.dirname(encryptedPath), { recursive: true });
     fs.writeFileSync(encryptedPath, encrypted);
 
-    const encryptedKey = this.rsaService.encryptKey(aesKey);
+    const encryptedKey = await this.rsaService.encryptKey(aesKey, 'aes-key-1');
 
     const result = new EncryptedFileDto();
     result.encryptedPath = encryptedPath;
@@ -45,16 +46,16 @@ export class EncryptService {
     result.iv = iv.toString('hex');
     result.authTag = authTag.toString('hex');
 
-    return Promise.resolve(result);
+    return result;
   }
 
-  decryptFile(
+  async decryptFile(
     encryptedFilePath: string,
     encryptedKeyBase64: string,
     ivHex: string,
     authTagHex: string,
   ) {
-    const aesKey = this.rsaService.decryptKey(encryptedKeyBase64);
+    const aesKey = await this.rsaService.decryptKey('aes-key-1');
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
 
