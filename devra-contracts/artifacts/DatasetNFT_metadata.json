@@ -1842,11 +1842,11 @@
 			]
 		},
 		"contracts/DevraDataset.sol": {
-			"keccak256": "0x8df0d17480a0788e975e7f8075d45a965addee1905240c52d0ed4156c3cda4b6",
+			"keccak256": "0xcb06990b1e697291692ed2f20278c812381350b6e379db748eeb8d7255ac73fa",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://d485f99b547d78afb37d3763e5d91f50748c80283260df2c0d89e759fe726f73",
-				"dweb:/ipfs/QmRvWfF8RNGqR3QzRiEaTth75Z95Rqj6dH9Rm3GoaHWfFk"
+				"bzz-raw://d92a65d0786836355cb621a08f712d861b7908e7809a56481918b19e769f89d4",
+				"dweb:/ipfs/QmaVRJJeH3UBtKReR387CFQ2Dqz2S6vkpag4NuMi5M15KD"
 			]
 		}
 	},
