@@ -38,11 +38,13 @@ export class EncryptService {
     fs.mkdirSync(path.dirname(encryptedPath), { recursive: true });
     fs.writeFileSync(encryptedPath, encrypted);
 
-    const encryptedKey = await this.rsaService.encryptKey(aesKey, 'aes-key-1');
+    const keyId = `aes-key-${Date.now()}`;
+    const encryptedKey = await this.rsaService.encryptKey(aesKey, keyId);
 
     const result = new EncryptedFileDto();
     result.encryptedPath = encryptedPath;
     result.encryptedKey = encryptedKey;
+    result.keyId = keyId;
     result.iv = iv.toString('hex');
     result.authTag = authTag.toString('hex');
 
@@ -52,10 +54,11 @@ export class EncryptService {
   async decryptFile(
     encryptedFilePath: string,
     encryptedKeyBase64: string,
+    keyId: string,
     ivHex: string,
     authTagHex: string,
   ) {
-    const aesKey = await this.rsaService.decryptKey('aes-key-1');
+    const aesKey = await this.rsaService.decryptKey(keyId);
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
 

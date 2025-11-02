@@ -7,6 +7,9 @@ export class EncryptedFileDto {
   @ApiProperty({ description: 'RSA-encrypted AES key (Base64 encoded)' })
   encryptedKey: string;
 
+  @ApiProperty({ description: 'AES key unique identity (Base64 encoded)' })
+  keyId: string;
+
   @ApiProperty({ description: 'Initialization vector (IV) in hex' })
   iv: string;
 

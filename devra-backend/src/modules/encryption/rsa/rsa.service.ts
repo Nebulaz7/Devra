@@ -26,7 +26,6 @@ export class RsaService {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // 🔐 If keys don’t exist locally, check Vault first
     try {
       const privateKeyFromVault = await getKey('private-key');
       if (privateKeyFromVault) {

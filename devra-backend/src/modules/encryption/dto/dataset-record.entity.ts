@@ -18,10 +18,7 @@ export class DatasetRecord {
   encryption: any;
 
   @Column({ nullable: true })
-  category: string;
-
-  @Column({ nullable: true })
-  cid: string;
+  cidHash: string;
 
   @Column({ nullable: true })
   ipfsUrl: string;
@@ -30,5 +27,5 @@ export class DatasetRecord {
   status: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  uploadedAt: Date;
+  createdAt: Date;
 }

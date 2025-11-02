@@ -12,13 +12,11 @@ model Dataset {
   id          String   @id @default(uuid())
   name        String
   owner       String
-  category    String?
   hash        String
   encryption  Json
-  cid         String?
+  cidHash     String?
   ipfsUrl     String?
   status      String   @default("pending")
-  uploadedAt  DateTime?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
+
