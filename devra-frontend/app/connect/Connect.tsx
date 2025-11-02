@@ -1,73 +1,290 @@
 "use client";
-import React, { use } from "react";
-import { useState } from "react";
+import React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import "@fontsource/quantico/700.css";
 import { ArrowUpRight, Wallet, ArrowLeft, Link2, Search } from "lucide-react";
+import { ethers } from "ethers";
+
+const MOONBASE_ALPHA = {
+  chainId: "0x507", // 1287 in hex
+  chainName: "Moonbase Alpha",
+  nativeCurrency: {
+    name: "DEV",
+    symbol: "DEV",
+    decimals: 18,
+  },
+  rpcUrls: ["https://rpc.api.moonbase.moonbeam.network"],
+  blockExplorerUrls: ["https://moonbase.moonscan.io/"],
+};
 
 const Connect = () => {
+  const router = useRouter();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [account, setAccount] = useState<string | null>(null);
+  const [chainId, setChainId] = useState<number | null>(null);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
 
-  const handleConnectWallet = () => {
+  // Check if wallet is already connected on mount
+  useEffect(() => {
+    checkIfWalletConnected();
+
+    if (typeof window !== "undefined" && window.ethereum) {
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      window.ethereum.on("chainChanged", handleChainChanged);
+    }
+
+    return () => {
+      if (typeof window !== "undefined" && window.ethereum) {
+        window.ethereum.removeListener(
+          "accountsChanged",
+          handleAccountsChanged
+        );
+        window.ethereum.removeListener("chainChanged", handleChainChanged);
+      }
+    };
+  }, []);
+
+  // Update network status when chainId changes
+  useEffect(() => {
+    setIsCorrectNetwork(chainId === 1287);
+  }, [chainId]);
+
+  const checkIfWalletConnected = async () => {
+    if (typeof window === "undefined" || !window.ethereum) {
+      return;
+    }
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.listAccounts();
+      const network = await provider.getNetwork();
+
+      if (accounts.length > 0) {
+        setAccount(accounts[0].address);
+        setChainId(Number(network.chainId));
+      }
+    } catch (error) {
+      console.error("Error checking wallet connection:", error);
+    }
+  };
+
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+      setError(null);
+    } else {
+      setAccount(null);
+      setError("Please connect your wallet");
+    }
+  };
+
+  const handleChainChanged = () => {
+    window.location.reload();
+  };
+
+  const handleConnectWallet = async () => {
+    if (typeof window === "undefined" || !window.ethereum) {
+      setError("Please install MetaMask to continue");
+      return;
+    }
+
     setIsConnecting(true);
-    // Simulate wallet connection delay
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      // Request account access
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      const network = await provider.getNetwork();
+
+      setAccount(address);
+      setChainId(Number(network.chainId));
+
+      // Check if on correct network
+      if (Number(network.chainId) !== 1287) {
+        await switchToMoonbase();
+      } else {
+        // Successfully connected and on correct network
+        console.log("wallet is connected");
+      }
+    } catch (error: any) {
+      console.error("Error connecting wallet:", error);
+      if (error.code === 4001) {
+        setError("Connection rejected. Please try again.");
+      } else {
+        setError("Failed to connect wallet. Please try again.");
+      }
+    } finally {
       setIsConnecting(false);
-      alert("Wallet connected!");
-      setError("Something went wrong while connecting the wallet.");
-    }, 2000);
+    }
+  };
+
+  const switchToMoonbase = async () => {
+    if (typeof window === "undefined" || !window.ethereum) {
+      return;
+    }
+
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: MOONBASE_ALPHA.chainId }],
+      });
+      setError(null);
+
+      // Redirect after successful network switch
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
+    } catch (switchError: any) {
+      // This error code indicates that the chain has not been added to MetaMask
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [MOONBASE_ALPHA],
+          });
+          setError(null);
+
+          // Redirect after adding network
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1000);
+        } catch (addError) {
+          setError("Failed to add Moonbase Alpha network");
+        }
+      } else {
+        setError("Failed to switch to Moonbase Alpha network");
+      }
+    }
+  };
+
+  // Add this useEffect after your existing effects
+  useEffect(() => {
+    if (account && isCorrectNetwork) {
+      // Auto-redirect after 1 seconds of successful connection
+      const redirectTimer = setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
+
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [account, isCorrectNetwork, router]);
+
+  // Show different button states
+  const renderConnectButton = () => {
+    if (account && isCorrectNetwork) {
+      return (
+        <motion.button
+          className="bg-green-500 text-[16px] text-white px-4 flex cursor-pointer py-2 rounded-full items-center border-2 border-green-500 gap-2 transition duration-300"
+          whileHover={{ scale: 1.05 }}
+        >
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          Connected: {account.slice(0, 6)}...{account.slice(-4)}
+        </motion.button>
+      );
+    }
+
+    if (account && !isCorrectNetwork) {
+      return (
+        <motion.button
+          onClick={switchToMoonbase}
+          className="bg-yellow-500 text-[16px] text-white px-4 flex cursor-pointer py-2 rounded-full items-center border-2 border-yellow-500 gap-2 hover:bg-yellow-600 transition duration-300"
+          whileHover="hover"
+          variants={{
+            hover: { scale: 1.0 },
+          }}
+          layout
+        >
+          <Wallet className="inline mb-0" size={20} />
+          Switch to Moonbase Alpha
+          <motion.span
+            className="text-lg font-extralight"
+            variants={{
+              hover: {
+                x: 4,
+                transition: {
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 10,
+                },
+              },
+            }}
+          >
+            <ArrowUpRight className="inline-block mb-1" />
+          </motion.span>
+        </motion.button>
+      );
+    }
+
+    return (
+      <motion.button
+        onClick={handleConnectWallet}
+        disabled={isConnecting}
+        className="bg-pink-500 text-[16px] text-white px-4 flex cursor-pointer py-2 rounded-full items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        whileHover="hover"
+        variants={{
+          hover: { scale: 1.0 },
+        }}
+        layout
+      >
+        <Wallet className="inline mb-0" size={20} />
+        {isConnecting ? "Connecting..." : "Connect Wallet"}
+        {!isConnecting && (
+          <motion.span
+            className="text-lg font-extralight"
+            variants={{
+              hover: {
+                x: 4,
+                transition: {
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 10,
+                },
+              },
+            }}
+          >
+            <ArrowUpRight className="inline-block mb-1" />
+          </motion.span>
+        )}
+      </motion.button>
+    );
   };
 
   return (
     <div className="h-screen bg-gradient-to-b from-black to-pink-500 flex flex-col items-center justify-center">
-      <div className="bg-[#1e1d1d] border-1 border-gray-600 rounded-2xl px-6 py-8 text-center">
+      <div className="bg-[#1e1d1d] border-1 border-gray-600 rounded-2xl px-6 py-8 text-center max-w-2xl">
         <h1 className="text-3xl font-light mb-6 text-white">
           Welcome to{" "}
           <span style={{ fontFamily: "quantico, sans-serif" }}>Devra</span>
         </h1>
         <p className="pb-6 text-sm text-gray-400">
-          To use Devra you must connect to your Polkadot testnet wallet
+          To use Devra you must connect to Moonbase Alpha testnet
         </p>
 
         {/* Connect wallet button */}
         <div className="space-y-4 flex pb-5 justify-center text-center mx-auto">
-          <motion.button
-            onClick={handleConnectWallet}
-            disabled={isConnecting}
-            className="bg-pink-500 text-[16px] text-white px-4 flex cursor-pointer py-2 rounded-full items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover="hover"
-            variants={{
-              hover: { scale: 1.0 },
-            }}
-            layout
-          >
-            <Wallet className="inline mb-0" size={20} />
-            {isConnecting ? "Connecting..." : "Connect Wallet"}
-            {!isConnecting && (
-              <motion.span
-                className="text-lg font-extralight"
-                variants={{
-                  hover: {
-                    x: 4,
-                    transition: {
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 10,
-                    },
-                  },
-                }}
-              >
-                <ArrowUpRight className="inline-block mb-1" />
-              </motion.span>
-            )}
-          </motion.button>
+          {renderConnectButton()}
         </div>
 
         {/* Error section */}
-        <p className="text-red-400 text-sm">{error}</p>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4"
+          >
+            <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg py-2 px-4">
+              {error}
+            </p>
+          </motion.div>
+        )}
 
         {/* Network Info - Enhanced */}
         <div className="mt-6 mb-4">
@@ -88,16 +305,22 @@ const Connect = () => {
               {/* Network Details */}
               <div className="flex flex-col items-start">
                 <p className="text-white/50 text-[10px] uppercase tracking-wider font-medium">
-                  Connected Network
+                  Target Network
                 </p>
                 <div className="flex items-center gap-2">
                   {/* Status Indicator */}
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    {isCorrectNetwork ? (
+                      <>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      </>
+                    ) : (
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
+                    )}
                   </span>
                   <p className="text-white font-medium text-sm">
-                    Polkadot Hub TestNet
+                    Moonbase Alpha
                   </p>
                 </div>
               </div>
@@ -105,7 +328,7 @@ const Connect = () => {
               {/* Chain ID Badge */}
               <div className="ml-auto">
                 <span className="text-[10px] bg-pink-500/20 text-pink-300 px-2 py-1 rounded-full border border-purple-500/30">
-                  Chain: 420420422
+                  Chain: 1287
                 </span>
               </div>
             </div>
@@ -149,12 +372,12 @@ const Connect = () => {
                         RPC URL
                       </p>
                       <a
-                        href="https://testnet-passet-hub-eth-rpc.polkadot.io"
+                        href="https://rpc.api.moonbase.moonbeam.network"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-pink-400 hover:text-pink-300 text-[11px] break-all transition duration-200 flex items-center gap-1"
                       >
-                        https://testnet-passet-hub-eth-rpc.polkadot.io
+                        https://rpc.api.moonbase.moonbeam.network
                         <ArrowUpRight size={10} className="flex-shrink-0" />
                       </a>
                     </div>
@@ -168,12 +391,12 @@ const Connect = () => {
                         Block Explorer
                       </p>
                       <a
-                        href="https://blockscout-passet-hub.parity-testnet.parity.io/"
+                        href="https://moonbase.moonscan.io/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-pink-400 hover:text-pink-300 text-[11px] break-all transition duration-200 flex items-center gap-1"
                       >
-                        https://blockscout-passet-hub.parity-testnet.parity.io/
+                        https://moonbase.moonscan.io/
                         <ArrowUpRight size={10} className="flex-shrink-0" />
                       </a>
                     </div>
@@ -185,7 +408,8 @@ const Connect = () => {
             {/* Additional Network Info */}
             <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px]">
               <Link
-                href="https://docs.polkadot.com/develop/smart-contracts/connect-to-polkadot/#networks-details"
+                href="https://docs.moonbeam.network/builders/get-started/networks/moonbase/"
+                target="_blank"
                 className="flex cursor-pointer items-center gap-1 text-white/40 hover:text-white/70 transition duration-200"
               >
                 <svg
@@ -202,17 +426,32 @@ const Connect = () => {
                 <span>Testnet Only</span>
               </Link>
               <a
-                href="https://faucet.polkadot.io/?parachain=1111"
+                href="https://faucet.moonbeam.network/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-pink-400 hover:text-pink-300 flex items-center gap-1 transition duration-200"
               >
-                Get PAS
+                Get DEV Tokens
                 <ArrowUpRight size={12} />
               </a>
             </div>
           </div>
         </div>
+
+        {/* Connection Status */}
+        {account && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-4 bg-green-500/10 border border-green-500/20 rounded-lg p-3"
+          >
+            {isCorrectNetwork && (
+              <p className="text-green-400 text-xs mt-1">
+                Redirecting to dashboard...
+              </p>
+            )}
+          </motion.div>
+        )}
 
         {/* Terms */}
         <p className="mt-8 text-xs text-center text-white/50 pb-3">
