@@ -48,8 +48,8 @@ export class RsaService {
     fs.writeFileSync(this.publicKeyPath, publicKey);
 
     // 💾 Store private key securely in Vault
-    await storeKey('private-key', privateKey);
-    console.log('🔐 New private key stored in Vault');
+    const vaultKeyRef = await storeKey('private-key', privateKey);
+    console.log(`🔐 New private key stored in Vault: ${vaultKeyRef}`);
   }
 
   // ⬇️ Encrypt AES key and store encrypted key in Vault

@@ -41,20 +41,23 @@ export class UploadController {
 
     const hash = await this.encryptService.hashDataset(file);
 
-    const encryptedPath = await this.encryptService.encryptDataset(file);
+    const encryptionResult = await this.encryptService.encryptDataset(file);
 
     const datasetRecord = await this.datasetRecordService.createRecord(
       createDatasetDto,
       {
-        ...encryptedPath,
         hash,
+        aesKeyEncrypted: encryptionResult.encryptedKey, // RSA-encrypted AES key
+        vaultKeyRef: 'private-key', // Reference in Vault
+        iv: encryptionResult.iv,
+        authTag: encryptionResult.authTag,
       },
     );
     console.log('🗂️  Dataset record created:', datasetRecord);
 
     await this.uploadQueueService.addJob({
       datasetId: datasetRecord.id,
-      filePath: encryptedPath.encryptedPath,
+      filePath: encryptionResult.encryptedPath,
       metadata: createDatasetDto,
     });
 
@@ -64,7 +67,7 @@ export class UploadController {
       message: 'Dataset uploaded and encrypted successfully',
       datasetRecord,
       metadata: createDatasetDto,
-      encryptedPath,
+      encryptedPath: encryptionResult.encryptedPath,
       hash,
     };
   }

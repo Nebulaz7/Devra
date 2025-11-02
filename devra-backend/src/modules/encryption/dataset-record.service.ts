@@ -8,24 +8,41 @@ export class DatasetRecordService {
 
   async createRecord(
     metadata: CreateDatasetDto,
-    extra: { hash: string; encryptedKey: string },
+    extra: {
+      hash: string;
+      aesKeyEncrypted: string;
+      vaultKeyRef: string;
+      iv: string;
+      authTag: string;
+      algorithm?: string;
+    },
   ) {
     if (!metadata.owner) {
       throw new Error('Missing owner in metadata');
     }
+
     if (!extra || typeof extra.hash !== 'string') {
       throw new Error('Missing or invalid hash in extra');
     }
+
+    const encryptionDetails = {
+      aesKeyEncrypted: extra.aesKeyEncrypted,
+      vaultKeyRef: extra.vaultKeyRef,
+      iv: extra.iv,
+      authTag: extra.authTag,
+      algorithm: extra.algorithm || 'aes-256-gcm',
+    };
+
     const record = await this.prisma.dataset.create({
       data: {
         name: metadata.name,
         owner: metadata.owner ?? 'unknown',
-        category: metadata.category,
         hash: extra.hash,
-        encryption: extra.encryptedKey,
+        encryption: encryptionDetails,
         status: 'pending',
       },
     });
+
     return record;
   }
 
@@ -34,15 +51,17 @@ export class DatasetRecordService {
     console.log(
       `🛰️  Dataset uploaded to Crust with CID: ${cid}, IPFS URL: ${ipfsUrl}`,
     );
+
     const updated = await this.prisma.dataset.update({
       where: { id },
       data: {
-        cid: cid,
+        cidHash: cid,
         ipfsUrl: ipfsUrl,
         status: 'uploaded',
-        uploadedAt: new Date(),
+        createdAt: new Date(),
       },
     });
+
     return updated;
   }
 

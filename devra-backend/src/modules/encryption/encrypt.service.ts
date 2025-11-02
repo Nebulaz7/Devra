@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { RsaService } from './rsa/rsa.service';
 import { EncryptedFileDto } from './dto/encrypted-file.dto';
-
+import { storeKey } from 'src/common/config/vaultConfig';
 @Injectable()
 export class EncryptService {
   private readonly algorithm = 'aes-256-gcm';
@@ -38,12 +38,19 @@ export class EncryptService {
     fs.mkdirSync(path.dirname(encryptedPath), { recursive: true });
     fs.writeFileSync(encryptedPath, encrypted);
 
+    const vaultKeyRef = await storeKey(
+      'private-key',
+      aesKey.toString('base64'),
+    );
+    console.log('🔐 Vault key reference:', vaultKeyRef);
+
     const keyId = `aes-key-${Date.now()}`;
     const encryptedKey = await this.rsaService.encryptKey(aesKey, keyId);
 
     const result = new EncryptedFileDto();
     result.encryptedPath = encryptedPath;
     result.encryptedKey = encryptedKey;
+    result.vaultKeyRef = vaultKeyRef;
     result.keyId = keyId;
     result.iv = iv.toString('hex');
     result.authTag = authTag.toString('hex');

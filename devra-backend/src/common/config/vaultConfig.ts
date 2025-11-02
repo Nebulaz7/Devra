@@ -22,15 +22,17 @@ const headers = { 'X-Vault-Token': VAULT_TOKEN };
 export async function storeKey(
   keyName: string,
   keyValue: string,
-): Promise<void> {
+): Promise<string> {
   try {
     const url = `${VAULT_ADDR}/v1/secret/data/${keyName}`;
     await axios.post(url, { data: { ENCRYPT_KEY: keyValue } }, { headers });
     console.log(`✅ Stored key "${keyName}" in Vault`);
+    return keyName;
   } catch {
     const url = `${VAULT_ADDR}/v1/secret/data/${keyName}`;
     await axios.get<VaultResponse>(url, { headers });
     console.log(`Key "${keyName}" already exists in Vault`);
+    return keyName;
   }
 }
 

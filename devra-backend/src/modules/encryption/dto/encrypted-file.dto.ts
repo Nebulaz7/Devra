@@ -10,6 +10,9 @@ export class EncryptedFileDto {
   @ApiProperty({ description: 'AES key unique identity (Base64 encoded)' })
   keyId: string;
 
+  @ApiProperty({ description: 'Vault key reference (Base64 encoded)' })
+  vaultKeyRef: string;
+
   @ApiProperty({ description: 'Initialization vector (IV) in hex' })
   iv: string;
 
