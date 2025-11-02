@@ -443,12 +443,13 @@ const Connect = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 bg-green-500/10 border border-green-500/20 rounded-lg p-3"
           >
             {isCorrectNetwork && (
-              <p className="text-green-400 text-xs mt-1">
-                Redirecting to dashboard...
-              </p>
+              <div className="mt-4 bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <p className="text-green-400 text-xs mt-1">
+                  Redirecting to dashboard...
+                </p>
+              </div>
             )}
           </motion.div>
         )}
