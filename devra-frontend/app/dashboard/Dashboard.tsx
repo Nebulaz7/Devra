@@ -210,7 +210,9 @@ const StatCard = ({
       {isLoading ? (
         <div className="flex items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
-          <p className="text-lg text-gray-400">Loading...</p>
+          <p className="text-sm text-gray-400">
+            <i>Getting data from the blockchain</i>
+          </p>
         </div>
       ) : (
         <>
@@ -631,6 +633,9 @@ export default function Dashboard() {
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
+                    <p className="text-gray-200 text-md">
+                      Getting data from the blockchain
+                    </p>
                   </div>
                 ) : transactions.length > 0 ? (
                   transactions.map((transaction) => (
