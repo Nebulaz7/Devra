@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
+import { Megaphone } from "lucide-react";
 import { motion } from "framer-motion";
+import "@fontsource/quantico/700.css";
 
 const Banner = () => {
   return (
@@ -33,18 +35,22 @@ const Banner = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-6 bg-gradient-to-r from-pink-400/30 to-pink-500/90 p-8 rounded-2xl border border-pink-400/30"
+          className="mb-6"
         >
           <h1
-            style={{ fontFamily: "orbitron, sans-serif" }}
-            className="text-4xl md:text-4xl font-bold text-white mb-4"
+            style={{ fontFamily: "quantico, sans-serif" }}
+            className="text-4xl flex gap-4 md:text-4xl font-bold text-white mb-4"
           >
+            <Megaphone className="w-10 h-10 text-pink-500" />
             Data Marketplace
           </h1>
-          <p className="text-md md:text-lg text-gray-300 max-w-3xl mx-auto mb-8">
-            Discover, contribute, and Earn by sharing high-quality data for AI
-            training
-          </p>
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2"></div>
+            <p className="text-gray-400">
+              Discover, contribute, and Earn by sharing high-quality data for AI
+              training
+            </p>
+          </div>
         </motion.div>
       </div>
 

@@ -196,13 +196,13 @@ export default function Datasets() {
   );
 
   return (
-    <div className="min-h-screen mt-16 text-white p-6">
+    <div className="min-h-screen mt-16 text-white">
       <div className="w-full relative">
         {/* Header */}
         <div className="m-0 p-0">
           <Banner />
         </div>
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto p-6">
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-pink-500/20">
