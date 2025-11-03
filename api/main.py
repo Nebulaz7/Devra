@@ -142,7 +142,7 @@ def flag_bad_data(
 ) -> List[Issue]:
 
     issues: List[Issue] = []
-    cfg = BAD_DATA_CONFIG   # same dict you already have
+    cfg = BAD_DATA_CONFIG   # dict is up there somewhere
 
     # ---------- Tabular ----------
     for df, fname in zip(dfs, names):
@@ -393,7 +393,7 @@ async def verify_dataset(request: VerifyRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
     
-    # Step 3: Run AI verification (your updated function)
+    # Step 3: Run AI verification 
     scores, status, issues = ai_verify_data(decrypted_data)
     
     # Step 4: Return structured response
