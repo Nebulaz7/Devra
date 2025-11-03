@@ -29,7 +29,7 @@ const Banner = () => {
         </svg>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative max-w-7xl mt-4 rounded-2xl mb-4 mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
