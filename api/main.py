@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 import requests
 import ipfshttpclient
@@ -26,7 +26,11 @@ import numpy as np
 from typing import List, Dict, Any
 
 
-app = FastAPI(title="AI Dataset Verifier", version="0.1.0")
+app = FastAPI(
+    title="AI Dataset Verifier (pre-encryption)",
+    description="Runs BERT + ResNet-50, flags bad data, returns 4 scores.",
+    version="1.0.0",
+)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -120,16 +124,6 @@ def extract_text_from_dict(data, max_depth=3, current_depth=0):
             texts.extend(extract_text_from_dict(value, max_depth, current_depth + 1))
     return texts
 
-def unpad_pkcs7(data: bytes, block_size: int = 16) -> bytes:
-    """Proper PKCS7 unpadding for AES-CBC."""
-    if not data:
-        return data
-    pad_len = data[-1]
-    if pad_len > block_size or pad_len == 0:
-        raise ValueError("Invalid padding length")
-    if data[-pad_len:] != bytes([pad_len]) * pad_len:
-        raise ValueError("Invalid padding bytes")
-    return data[:-pad_len]
 
 def zero_scores() -> dict:
     return {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
@@ -138,35 +132,31 @@ def flag_bad_data(
     texts: List[str],
     images: List[bytes],
     dfs: List[pd.DataFrame],
-    names: List[str]
+    names: List[str],
 ) -> List[Issue]:
-
     issues: List[Issue] = []
-    cfg = BAD_DATA_CONFIG   # dict is up there somewhere
+    cfg = BAD_DATA_CONFIG
 
-    # ---------- Tabular ----------
+    # ----- Tabular -----
     for df, fname in zip(dfs, names):
-        # missing
         miss = df.isna().mean()
         bad_cols = miss[miss > cfg["missing_threshold"]].index.tolist()
         if bad_cols:
             issues.append(Issue(file=fname, type="missing",
-                               details=f"Columns >{cfg['missing_threshold']*100:.0f}% NaN: {bad_cols}"))
+                                details=f"Columns >{cfg['missing_threshold']*100:.0f}% NaN: {bad_cols}"))
 
-        # duplicates
         dup_frac = df.duplicated().mean()
         if dup_frac > cfg["duplicate_threshold"]:
             issues.append(Issue(file=fname, type="duplicate",
-                               details=f"{dup_frac*100:.1f}% duplicate rows"))
+                                details=f"{dup_frac*100:.1f}% duplicate rows"))
 
-        # outliers (numeric)
         for col in df.select_dtypes(include="number"):
             z = np.abs((df[col] - df[col].mean()) / df[col].std())
             if (z > cfg["z_score_threshold"]).any():
                 issues.append(Issue(file=fname, type="outlier",
-                                   details=f"{(z>cfg['z_score_threshold']).sum()} outliers in '{col}'"))
+                                    details=f"{(z>cfg['z_score_threshold']).sum()} outliers in '{col}'"))
 
-    # ---------- Text ----------
+    # ----- Text -----
     for txt, fname in zip(texts, names):
         if not txt.strip():
             issues.append(Issue(file=fname, type="text", details="Empty"))
@@ -178,22 +168,22 @@ def flag_bad_data(
         if sum(c.isalnum() or c.isspace() for c in txt) / len(txt) < 0.1:
             issues.append(Issue(file=fname, type="text", details="Gibberish"))
 
-    # ---------- Images ----------
+    # ----- Images -----
     for img_bytes, fname in zip(images, names):
         try:
-            img = Image.open(BytesIO(img_bytes)).convert("RGB")
+            img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
             w, h = img.size
             if min(w, h) < cfg["image_min_size"]:
                 issues.append(Issue(file=fname, type="image", details="Too small"))
                 continue
             arr = np.array(img)
-            if np.mean(np.all(arr == 0, axis=-1)) > cfg["image_max_black"]:
+            black_frac = np.mean(np.all(arr == 0, axis=-1))
+            if black_frac > cfg["image_max_black"]:
                 issues.append(Issue(file=fname, type="image", details="Mostly black"))
         except Exception as e:
             issues.append(Issue(file=fname, type="image", details=f"Corrupt: {e}"))
 
     return issues
-
 
 
 def combine_scores(text_s: dict, img_s: dict, has_text: bool, has_img: bool) -> dict:
@@ -203,167 +193,178 @@ def combine_scores(text_s: dict, img_s: dict, has_text: bool, has_img: bool) -> 
 
 
 
-def ai_verify_data(decrypted_data: bytes) -> tuple[dict, str, List[Issue]]:
-    
-
+def ai_verify_data(raw_bytes: bytes) -> tuple[dict, str, List[Issue]]:
     issues: List[Issue] = []
 
-    text_data: List[str] = []          # plain strings
-    image_data: List[bytes] = []       # raw image bytes
-    tabular_data: List[pd.DataFrame] = []   # pandas DataFrames
-    file_names: List[str] = []         # corresponding file name for each entry
+    # ----- 1. Collect raw buckets (original variable names) -----
+    text_data: List[str] = []
+    image_data: List[bytes] = []
+    tabular_data: List[pd.DataFrame] = []
+    file_names: List[str] = []
 
-    # ---- ZIP or single file ------------------------------------------------
-    if zipfile.is_zipfile(BytesIO(decrypted_data)):
-        with zipfile.ZipFile(BytesIO(decrypted_data), 'r') as zf:
+    # ----- ZIP handling -----
+    if zipfile.is_zipfile(io.BytesIO(raw_bytes)):
+        with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as zf:
             for name in zf.namelist():
                 fbytes = zf.read(name)
                 ftype, _ = mimetypes.guess_type(name)
 
-                # ---- unsupported file type (already handled by process_file) ----
+                # ---- unsupported type early-exit ----
                 if ftype not in [
-                    'application/json', 'text/csv', 'application/octet-stream',
-                    'text/plain',
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'image/png', 'image/jpeg'
+                    "application/json", "text/csv", "application/octet-stream",
+                    "text/plain",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "image/png", "image/jpeg",
                 ]:
                     issues.append(Issue(
                         file=name,
                         type="unsupported",
-                        details="Resend in JSON/CSV/Parquet/Excel/TXT/PNG/JPEG"
+                        details="Supported: JSON/CSV/Parquet/Excel/TXT/PNG/JPEG"
                     ))
                     continue
 
                 file_names.append(name)
 
-                # ---- route to the correct bucket -------------------------------
-                if ftype and ftype.startswith('image/'):
+                if ftype and ftype.startswith("image/"):
                     image_data.append(fbytes)
-                elif ftype == 'application/json':
+                elif ftype == "application/json":
                     text_data.extend(extract_text_from_dict(
-                        json.loads(fbytes.decode('utf-8'))
+                        json.loads(fbytes.decode("utf-8"))
                     ))
-                elif ftype == 'text/csv':
-                    tabular_data.append(pd.read_csv(BytesIO(fbytes)))
-                elif name.endswith('.parquet'):
-                    tabular_data.append(pq.read_table(BytesIO(fbytes)).to_pandas())
-                elif name.endswith('.xlsx'):
-                    tabular_data.append(pd.read_excel(BytesIO(fbytes), engine='openpyxl'))
-                elif ftype == 'text/plain':
-                    text_data.append(fbytes.decode('utf-8'))
+                elif ftype == "text/csv":
+                    tabular_data.append(pd.read_csv(io.BytesIO(fbytes)))
+                elif name.endswith(".parquet"):
+                    tabular_data.append(pq.read_table(io.BytesIO(fbytes)).to_pandas())
+                elif name.endswith(".xlsx"):
+                    tabular_data.append(pd.read_excel(io.BytesIO(fbytes), engine="openpyxl"))
+                elif ftype == "text/plain":
+                    text_data.append(fbytes.decode("utf-8"))
     else:
-        # ---- single file ----------------------------------------------------
+        # ---- single file ----
         name = "single_file"
         ftype, _ = mimetypes.guess_type(name)
 
         file_names.append(name)
-        if ftype and ftype.startswith('image/'):
-            image_data.append(decrypted_data)
+        if ftype and ftype.startswith("image/"):
+            image_data.append(raw_bytes)
         else:
-            text_data.append(decrypted_data.decode('utf-8'))
+            text_data.append(raw_bytes.decode("utf-8"))
 
-    # ---------- 2. FLAG bad data (no removal) ---------------------------
+    # ----- 2. Flag bad data (no removal) -----
     flag_issues = flag_bad_data(
         texts=text_data,
         images=image_data,
         dfs=tabular_data,
-        names=file_names
+        names=file_names,
     )
     issues.extend(flag_issues)
 
-    # ---------- 3. SCORE the *original* data ----------------------------
-    text_scores = (score_text_data(text_data)
-                   if text_data else zero_scores())
-    img_scores  = (score_image_data(image_data)
-                   if image_data else zero_scores())
+    # ----- 3. Score the *original* data -----
+    text_scores = score_text_data(text_data) if text_data else zero_scores()
+    img_scores  = score_image_data(image_data) if image_data else zero_scores()
 
     final_scores = combine_scores(
         text_s=text_scores,
         img_s=img_scores,
         has_text=bool(text_data),
-        has_img=bool(image_data)
+        has_img=bool(image_data),
     )
 
     status = "VERIFIED" if final_scores["quality"] >= 50 else "FAILED"
-
     return final_scores, status, issues
-    
 
 
-def score_text_data(texts: list) -> dict[str, int]:
-    try:
-        perplexities = []
-        sentiments = []
-        for text in texts[:5]:  # Limit for speed
-            inputs = bert_tokenizer(text, return_tensors='pt', truncation=True, max_length=512).to(device)
+
+def score_text_data(texts: List[str]) -> dict:
+    """BERT-based perplexity & simple heuristics."""
+    if not texts:
+        return zero_scores()
+
+    perplexities = []
+    for txt in texts[:5]:                     # limit for speed
+        enc = bert_tokenizer(txt, return_tensors="pt",
+                             truncation=True, max_length=512).to(device)
+        with torch.no_grad():
+            out = bert_model(**enc, labels=enc["input_ids"])
+            loss = out.loss
+            perplexities.append(torch.exp(loss).item())
+
+    avg_perp = np.mean(perplexities) if perplexities else float("inf")
+    quality = max(0, min(100, 100 - avg_perp * 2))
+    completeness = 100 if len(texts) >= 5 else len(texts) * 20
+    consistency = max(0, min(100, 100 - np.std(perplexities) * 10))
+    relevance = int(np.mean([len(t.split()) for t in texts]) * 5)
+
+    return {
+        "quality": int(quality),
+        "completeness": int(completeness),
+        "consistency": int(consistency),
+        "relevance": max(0, min(100, relevance)),
+    }
+
+def score_image_data(images: List[bytes]) -> dict:
+    """ResNet-50 top-5 confidence."""
+    if not images:
+        return zero_scores()
+
+    confidences = []
+    for img_bytes in images[:3]:               # limit for speed
+        try:
+            img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            tensor = resnet_transform(img).unsqueeze(0).to(device)
             with torch.no_grad():
-                outputs = bert_model(**inputs, labels=inputs['input_ids'])
-                loss = outputs.loss
-                perplexity = torch.exp(loss).item()
-                perplexities.append(perplexity)
-                # Proxy for relevance: Use BERT for sentiment (hacky but fast)
-                sentiment = len(text.split()) / max(1, perplexity)  # Word count vs complexity
-                sentiments.append(sentiment)
+                out = resnet(tensor)
+                probs = torch.nn.functional.softmax(out[0], dim=0)
+                top5 = probs.topk(5).values.sum().item() / 5
+                confidences.append(top5)
+        except Exception:
+            continue
 
-        # Compute metrics
-        avg_perplexity = np.mean(perplexities) if perplexities else float('inf')
-        quality = max(0, min(100, 100 - (avg_perplexity * 2)))  # Low perplexity = high quality
-        completeness = 100 if len(texts) >= 5 else len(texts) * 20  # Arbitrary: Full if ≥5 samples
-        consistency = max(0, min(100, 100 - np.std(perplexities) * 10))  # Low variance = consistent
-        relevance = int(np.mean(sentiments) * 20) if sentiments else 50  # Normalize sentiment proxy
+    avg_conf = np.mean(confidences) if confidences else 0.0
+    quality = int(avg_conf * 100)
+    completeness = 100 if len(images) >= 3 else len(images) * 33
+    consistency = max(0, min(100, 100 - np.std(confidences) * 50))
+    relevance = quality
 
-        return {
-            "quality": int(quality),
-            "completeness": int(completeness),
-            "consistency": int(consistency),
-            "relevance": max(0, min(100, relevance))
-        }
-    except Exception as e:
-        print(f"Text scoring error: {e}")
-        return {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
+    return {
+        "quality": quality,
+        "completeness": completeness,
+        "consistency": consistency,
+        "relevance": relevance,
+    }
 
 
-def score_image_data(images: list) -> dict[str, int]:
+@app.post("/verify", response_model=VerifyResponse)
+async def verify_dataset(
+    file: UploadFile = File(..., description="Dataset (single file or ZIP)"),
+    name: str = Form(None, description="Optional dataset name"),
+    description: str = Form(None, description="Optional description"),
+):
+
+
     try:
-        confidences = []
-        for img_bytes in images[:3]:  # Limit for speed
-            img = Image.open(BytesIO(img_bytes)).convert('RGB')
-            input_tensor = resnet_transform(img).unsqueeze(0).to(device)
-            with torch.no_grad():
-                outputs = resnet(input_tensor)
-                probs = torch.nn.functional.softmax(outputs[0], dim=0)
-                top5_conf = probs.topk(5)[0].sum().item() / 5
-                confidences.append(top5_conf)
+        raw_bytes = await file.read()
+        if not raw_bytes:
+            raise HTTPException(status_code=400, detail="Empty file")
 
-        avg_conf = np.mean(confidences) if confidences else 0
-        quality = int(avg_conf * 100)  # High confidence = high quality
-        completeness = 100 if len(images) >= 3 else len(images) * 33  # Full if ≥3 images
-        consistency = max(0, min(100, 100 - np.std(confidences) * 50))  # Low variance = consistent
-        relevance = quality  # Proxy: Assume high-confidence images are relevant
+        scores, status, issues = ai_verify_data(raw_bytes)
 
-        return {
-            "quality": quality,
-            "completeness": completeness,
-            "consistency": consistency,
-            "relevance": relevance
-        }
+        return VerifyResponse(
+            scores=scores,
+            status=status,
+            issues=issues,
+        )
+
     except Exception as e:
-        print(f"Image scoring error: {e}")
-        return {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
+        # Generic catch-all – you can refine per-error
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/verify")
-async def verify_file(file: UploadFile = File(...)):
-    try:
-        file_bytes = await file.read()
-        scores, status, issues = ai_verify_data(file_bytes)
-        return JSONResponse({
-            "scores": scores,
-            "status": status,
-            "issues": [issue.__dict__ for issue in issues],
-        })
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+#  Health check
+@app.get("/")
+def root():
+    return {"message": "AI Verifier (pre-encryption) is up!"}
+
 
 if __name__ == "__main__":
     import uvicorn
