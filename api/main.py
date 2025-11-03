@@ -352,56 +352,18 @@ def score_image_data(images: list) -> dict[str, int]:
         return {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
 
 
-
-
-@app.post("/verify", response_model=VerifyResponse)
-async def verify_dataset(request: VerifyRequest):
- 
-
+@app.post("/verify")
+async def verify_file(file: UploadFile = File(...)):
     try:
-        # Step 1: Fetch encrypted data from IPFS
-        ipfs_url = f"https://ipfs.io/ipfs/{request.ipfsCid}"
-        response = requests.get(ipfs_url, timeout=30)  # Add timeout for large files
-        response.raise_for_status()
-        encrypted_data = response.content
-        
-        # Step 2: Decrypt (AES-256-CBC)
-        try:
-            # Decode base64 key (backend provides key + IV concatenated)
-            key_iv_b64 = request.tempDecryptionKey
-            key_iv = base64.b64decode(key_iv_b64)
-            if len(key_iv) < 48:
-                raise ValueError("Key+IV must be at least 48 bytes")
-            key = key_iv[:32]  # AES-256 key (32 bytes)
-            iv = key_iv[32:48]  # IV (16 bytes)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid decryption key: {str(e)}")
-        
-        # Perform decryption
-        backend = default_backend()
-        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
-        decryptor = cipher.decryptor()
-        padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
-        
-        # Unpad with proper PKCS7
-        decrypted_data = unpad_pkcs7(padded_data)
-        
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"IPFS fetch failed (check CID?): {str(e)}")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Decryption failed: {str(e)}")
+        file_bytes = await file.read()
+        scores, status, issues = ai_verify_data(file_bytes)
+        return JSONResponse({
+            "scores": scores,
+            "status": status,
+            "issues": [issue.__dict__ for issue in issues],
+        })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-    
-    # Step 3: Run AI verification 
-    scores, status, issues = ai_verify_data(decrypted_data)
-    
-    # Step 4: Return structured response
-    return VerifyResponse(
-        scores=scores,
-        status=status,
-        issues=issues
-    )
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
