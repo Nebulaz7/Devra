@@ -13,9 +13,14 @@ import {
   Bell,
   Shield,
   Palette,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ethers } from "ethers";
+import { CONTRACT_ADDRESS } from "../contracts/contractAddress";
+import { CONTRACT_ABI } from "../contracts/devraDatasets";
 
 interface ProfileBannerProps {
   walletAddress: string;
@@ -31,6 +36,7 @@ interface StatCardProps {
     isPositive: boolean;
   };
   link?: string;
+  isLoading?: boolean;
 }
 
 interface Transaction {
@@ -40,6 +46,7 @@ interface Transaction {
   amount: string;
   timestamp: string;
   status: "completed" | "pending";
+  txHash?: string;
 }
 
 interface SettingItemProps {
@@ -47,6 +54,13 @@ interface SettingItemProps {
   title: string;
   description: string;
   action: string;
+}
+
+interface DashboardStats {
+  datasetsMinted: number;
+  datasetsPurchased: number;
+  totalSpent: string;
+  totalReceived: string;
 }
 
 const Avatar = ({ size }: { address: string; size: number }) => {
@@ -61,7 +75,7 @@ const Avatar = ({ size }: { address: string; size: number }) => {
       }}
     >
       <Image
-        src="avatars/love.svg"
+        src="/avatars/love.svg"
         alt="User Avatar"
         width={size}
         height={size}
@@ -71,11 +85,9 @@ const Avatar = ({ size }: { address: string; size: number }) => {
 };
 
 const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
-  // Use a default size for SSR, then update on client
   const [avatarSize, setAvatarSize] = useState(120);
 
   useEffect(() => {
-    // Only run on client side
     const updateSize = () => {
       if (window.innerWidth < 640) {
         setAvatarSize(72);
@@ -86,10 +98,7 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
       }
     };
 
-    // Set initial size
     updateSize();
-
-    // Update on resize
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
@@ -140,8 +149,8 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
             <button
               onClick={() =>
                 window.open(
-                  //      `https://calibration.filscan.io/address/${walletAddress}`,
-                  "_blank",
+                  `https://moonbase.moonscan.io/address/${walletAddress}`,
+                  "_blank"
                 )
               }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-xs sm:text-sm w-fit text-gray-300 hover:text-white group"
@@ -166,19 +175,17 @@ const StatCard = ({
   icon,
   trend,
   link,
+  isLoading = false,
 }: StatCardProps) => {
+  const CardWrapper = link ? motion.a : motion.div;
+
   return (
-    <motion.div
+    <CardWrapper
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      {...(link
-        ? {
-            onClick: () => (window.location.href = link),
-            style: { cursor: "pointer" },
-          }
-        : {})}
-      className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 md:p-6 hover:border-pink-500/30 transition-all duration-300 group"
+      {...(link ? { href: link } : {})}
+      className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 md:p-6 hover:border-pink-500/30 transition-all duration-300 group cursor-pointer"
     >
       <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div className="p-2 sm:p-2.5 rounded-lg bg-pink-500/10 text-pink-500 group-hover:bg-pink-500/20 transition-colors">
@@ -200,11 +207,22 @@ const StatCard = ({
         )}
       </div>
       <h3 className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">{title}</h3>
-      <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">
-        {value}
-      </p>
-      <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>
-    </motion.div>
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
+          <p className="text-sm text-gray-400">
+            <i>Getting data from the blockchain</i>
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">
+            {value}
+          </p>
+          <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>
+        </>
+      )}
+    </CardWrapper>
   );
 };
 
@@ -231,6 +249,13 @@ const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
+      onClick={() =>
+        transaction.txHash &&
+        window.open(
+          `https://moonbase.moonscan.io/tx/${transaction.txHash}`,
+          "_blank"
+        )
+      }
       className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer"
     >
       <div className={`p-2 rounded-lg ${styles.bg}`}>
@@ -298,72 +323,242 @@ const SettingItem = ({
 };
 
 export default function Dashboard() {
-  // Mock data
-  const stats = [
+  const router = useRouter();
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [stats, setStats] = useState<DashboardStats>({
+    datasetsMinted: 0,
+    datasetsPurchased: 0,
+    totalSpent: "0",
+    totalReceived: "0",
+  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState<string>("0");
+
+  useEffect(() => {
+    checkWalletConnection();
+  }, []);
+
+  const checkWalletConnection = async () => {
+    if (typeof window === "undefined" || !window.ethereum) {
+      router.push("/connect");
+      return;
+    }
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.listAccounts();
+      const network = await provider.getNetwork();
+
+      if (accounts.length === 0) {
+        router.push("/connect");
+        return;
+      }
+
+      if (Number(network.chainId) !== 1287) {
+        router.push("/connect");
+        return;
+      }
+
+      const address = accounts[0].address;
+      setWalletAddress(address);
+
+      // Get balance
+      const bal = await provider.getBalance(address);
+      setBalance(parseFloat(ethers.formatEther(bal)).toFixed(4));
+
+      // Fetch blockchain data
+      await fetchDashboardData(address, provider);
+    } catch (error) {
+      console.error("Error checking wallet:", error);
+      router.push("/connect");
+    }
+  };
+
+  const fetchDashboardData = async (
+    address: string,
+    provider: ethers.BrowserProvider
+  ) => {
+    setIsLoading(true);
+    try {
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        CONTRACT_ABI,
+        provider
+      );
+
+      // Get tokens owned by user
+      const tokenIds = await contract.getTokensByOwner(address);
+      const datasetsMinted = tokenIds.length;
+
+      // Get recent mint events
+      const mintFilter = contract.filters.DatasetMinted(address);
+      const mintEvents = await contract.queryFilter(mintFilter, BigInt(0));
+
+      // Get purchase events
+      const purchaseFilter = contract.filters.DatasetPurchased(null, address);
+      const purchaseEvents = await contract.queryFilter(
+        purchaseFilter,
+        BigInt(0)
+      );
+
+      // Get sale events
+      const saleFilter = contract.filters.DatasetPurchased(address, null);
+      const saleEvents = await contract.queryFilter(saleFilter, BigInt(0));
+
+      // Fetch dataset info for recent mints
+      const recentDatasets: any[] = [];
+      for (const event of mintEvents.slice(-4)) {
+        // Type guard: check if it's an EventLog
+        if (!("args" in event)) continue;
+
+        const datasetInfo = await contract.getDatasetInfo(event.args[0]);
+        recentDatasets.push({
+          tokenId: event.args[0].toString(),
+          name: datasetInfo[0],
+          description: datasetInfo[1],
+          dataHash: datasetInfo[2],
+          timestamp: datasetInfo[3],
+        });
+      }
+
+      // Process transactions
+      const txs: Transaction[] = [];
+
+      // Add mint transactions
+      for (const event of mintEvents.slice(-4)) {
+        // Type guard: check if it's an EventLog
+        if (!("args" in event)) continue;
+
+        const block = await event.getBlock();
+        const timestamp = new Date(block.timestamp * 1000);
+        const datasetInfo = await contract.getDatasetInfo(event.args[0]);
+
+        txs.push({
+          id: event.transactionHash,
+          type: "mint",
+          dataset: datasetInfo.name,
+          amount: "Free",
+          timestamp: formatTimestamp(timestamp),
+          status: "completed",
+          txHash: event.transactionHash,
+        });
+      }
+
+      // Add purchase transactions
+      let totalSpent = 0n;
+      for (const event of purchaseEvents) {
+        // Type guard: check if it's an EventLog
+        if (!("args" in event)) continue;
+
+        const tokenId = event.args[0];
+        const datasetInfo = await contract.getDatasetInfo(tokenId);
+        const price = event.args[2];
+
+        totalSpent += price;
+
+        const block = await event.getBlock();
+        const timestamp = new Date(block.timestamp * 1000);
+
+        txs.push({
+          id: event.transactionHash,
+          type: "purchase",
+          dataset: datasetInfo.name,
+          amount: `${ethers.formatEther(price)} DEV`,
+          timestamp: formatTimestamp(timestamp),
+          status: "completed",
+          txHash: event.transactionHash,
+        });
+      }
+
+      // Add sale transactions
+      let totalReceived = 0n;
+      for (const event of saleEvents) {
+        // Type guard: check if it's an EventLog
+        if (!("args" in event)) continue;
+
+        const block = await event.getBlock();
+        const timestamp = new Date(block.timestamp * 1000);
+        const datasetInfo = await contract.getDatasetInfo(event.args[0]);
+        const price = event.args[3];
+
+        totalReceived += price;
+
+        txs.push({
+          id: event.transactionHash,
+          type: "sale",
+          dataset: datasetInfo.name,
+          amount: `${ethers.formatEther(price)} DEV`,
+          timestamp: formatTimestamp(timestamp),
+          status: "completed",
+          txHash: event.transactionHash,
+        });
+      }
+
+      // Sort by most recent
+      txs.sort((a, b) => {
+        return (
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      });
+
+      setStats({
+        datasetsMinted,
+        datasetsPurchased: purchaseEvents.length,
+        totalSpent: ethers.formatEther(totalSpent),
+        totalReceived: ethers.formatEther(totalReceived),
+      });
+
+      setTransactions(txs.slice(0, 4));
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTimestamp = (date: Date): string => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "1 day ago";
+    return `${days} days ago`;
+  };
+
+  const statsDisplay = [
     {
       title: "Datasets Minted",
-      value: "24",
+      value: stats.datasetsMinted.toString(),
       subtitle: "Total datasets created",
       icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
-      trend: { value: "+12%", isPositive: true },
       link: "/datasets",
+      isLoading,
     },
     {
       title: "Datasets Purchased",
-      value: "15",
+      value: stats.datasetsPurchased.toString(),
       subtitle: "Successfully acquired",
       icon: <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />,
-      trend: { value: "+8%", isPositive: true },
       link: "/datasets",
+      isLoading,
     },
     {
       title: "Total Spent",
-      value: "12.5 PAS",
-      subtitle: "≈ $24,750 USD",
+      value: `${parseFloat(stats.totalSpent).toFixed(2)} DEV`,
+      subtitle: "On dataset purchases",
       icon: <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6" />,
-      trend: { value: "-5%", isPositive: false },
+      isLoading,
     },
     {
       title: "Total Received",
-      value: "32.8 PAS",
-      subtitle: "≈ $65,100 USD",
+      value: `${parseFloat(stats.totalReceived).toFixed(2)} DEV`,
+      subtitle: "From dataset sales",
       icon: <ArrowDownLeft className="w-5 h-5 sm:w-6 sm:h-6" />,
-      trend: { value: "+18%", isPositive: true },
-    },
-  ];
-
-  const recentTransactions: Transaction[] = [
-    {
-      id: "1",
-      type: "mint",
-      dataset: "Medical Records Q4 2024",
-      amount: "2.5 PAS",
-      timestamp: "2 hours ago",
-      status: "completed",
-    },
-    {
-      id: "2",
-      type: "sale",
-      dataset: "Climate Data Analysis",
-      amount: "5.2 PAS",
-      timestamp: "5 hours ago",
-      status: "completed",
-    },
-    {
-      id: "3",
-      type: "purchase",
-      dataset: "Financial Market Insights",
-      amount: "3.1 PAS",
-      timestamp: "1 day ago",
-      status: "completed",
-    },
-    {
-      id: "4",
-      type: "mint",
-      dataset: "IoT Sensor Data 2024",
-      amount: "1.8 PAS",
-      timestamp: "2 days ago",
-      status: "pending",
+      isLoading,
     },
   ];
 
@@ -377,7 +572,7 @@ export default function Dashboard() {
     {
       icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5" />,
       title: "Security",
-      description: "Two-factor authentication enabled",
+      description: `Connected: ${balance} DEV`,
       action: "Manage",
     },
     {
@@ -388,18 +583,26 @@ export default function Dashboard() {
     },
   ];
 
+  if (!walletAddress) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="mt-16 sm:mt-18 md:mt-20 min-h-screen bg-black">
       {/* Profile Banner */}
       <div className="p-3 xs:p-4 sm:p-5 md:p-6">
-        <ProfileBanner walletAddress="0x1234ihdiuhsuisjiu" />
+        <ProfileBanner walletAddress={walletAddress} />
       </div>
 
       {/* Main Content */}
       <div className="px-3 xs:px-4 sm:px-5 md:px-6 lg:px-8 pb-8 sm:pb-12">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 mb-6 sm:mb-8">
-          {stats.map((stat, index) => (
+          {statsDisplay.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
         </div>
@@ -427,12 +630,25 @@ export default function Dashboard() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {recentTransactions.map((transaction) => (
-                  <TransactionItem
-                    key={transaction.id}
-                    transaction={transaction}
-                  />
-                ))}
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
+                    <p className="text-gray-200 text-md">
+                      Getting data from the blockchain
+                    </p>
+                  </div>
+                ) : transactions.length > 0 ? (
+                  transactions.map((transaction) => (
+                    <TransactionItem
+                      key={transaction.id}
+                      transaction={transaction}
+                    />
+                  ))
+                ) : (
+                  <p className="text-center text-gray-400 py-8">
+                    No transactions yet. Start by minting your first dataset!
+                  </p>
+                )}
               </div>
             </motion.div>
           </div>
@@ -459,7 +675,7 @@ export default function Dashboard() {
               <div className="mt-4 sm:mt-6 pt-4 border-t border-white/10">
                 <Link
                   href="/settings"
-                  className="w-full py-2 sm:py-2.5 px-4 rounded-lg bg-pink-500/10 text-pink-500 hover:bg-pink-500/20 font-medium text-sm sm:text-base transition-colors"
+                  className="w-full block text-center py-2 sm:py-2.5 px-4 rounded-lg bg-pink-500/10 text-pink-500 hover:bg-pink-500/20 font-medium text-sm sm:text-base transition-colors"
                 >
                   View All Settings
                 </Link>

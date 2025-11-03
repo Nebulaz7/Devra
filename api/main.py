@@ -23,11 +23,11 @@ import io
 import pyarrow.parquet as pq
 import openpyxl
 import numpy as np
+from typing import List, Dict, Any
 
 
 app = FastAPI(title="AI Dataset Verifier", version="0.1.0")
 
-print("Loading models...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
@@ -48,8 +48,12 @@ resnet_transform = transforms.Compose(
     ]
 )
 
-print("Models loaded!")
 
+
+class Issue(BaseModel):
+    file: str
+    type: str                     # "missing", "duplicate", "outlier", "text", "image"
+    details: str
 
 class VerifyRequest(BaseModel):
     ipfsCid: str
@@ -59,54 +63,19 @@ class VerifyRequest(BaseModel):
 class VerifyResponse(BaseModel):
     scores: dict[str, int]  
     status: str  
+    issues: List[Issue] = []
 
 
-def ai_verify_data(decrypted_data: bytes) -> tuple[dict[str, int], str]:
-    try:
-        scores = {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
-        text_data = []
-        image_data = []
+BAD_DATA_CONFIG = {
+    "missing_threshold": 0.30,
+    "duplicate_threshold": 0.10,
+    "z_score_threshold": 3.0,
+    "text_min_len": 1,
+    "text_max_len": 500,
+    "image_min_size": 50,      # px on smallest side
+    "image_max_black": 0.95,   # fraction of black pixels
+}
 
-        # Check if data is a ZIP archive
-        if zipfile.is_zipfile(BytesIO(decrypted_data)):
-            with zipfile.ZipFile(BytesIO(decrypted_data), 'r') as zf:
-                file_list = zf.namelist()
-                for file_name in file_list:
-                    file_bytes = zf.read(file_name)
-                    file_type, _ = mimetypes.guess_type(file_name)
-                    process_file(file_name, file_bytes, file_type, text_data, image_data)
-        else:
-            # Single file
-            file_name = "dataset"  # Placeholder
-            file_type, _ = mimetypes.guess_type(file_name)
-            process_file(file_name, decrypted_data, file_type, text_data, image_data)
-
-        # Score text/tabular data with BERT
-        text_scores = {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
-        if text_data:
-            text_scores = score_text_data(text_data)
-
-        # Score images with ResNet-50
-        image_scores = {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
-        if image_data:
-            image_scores = score_image_data(image_data)
-
-        # Combine scores
-        if text_data and image_data:
-            for key in scores:
-                scores[key] = int(0.6 * text_scores[key] + 0.4 * image_scores[key])
-        elif text_data:
-            scores = text_scores
-        elif image_data:
-            scores = image_scores
-
-        status = "VERIFIED" if scores["quality"] >= 50 else "FAILED"
-        return scores, status
-
-    except Exception as e:
-        print(f"Scoring error: {e}")
-        return {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}, "FAILED"
-    
 
 def process_file(file_name: str, file_bytes: bytes, file_type: str, text_data: list, image_data: list):
     """Classify and parse file based on type."""
@@ -150,6 +119,175 @@ def extract_text_from_dict(data, max_depth=3, current_depth=0):
         for value in data.values():
             texts.extend(extract_text_from_dict(value, max_depth, current_depth + 1))
     return texts
+
+def unpad_pkcs7(data: bytes, block_size: int = 16) -> bytes:
+    """Proper PKCS7 unpadding for AES-CBC."""
+    if not data:
+        return data
+    pad_len = data[-1]
+    if pad_len > block_size or pad_len == 0:
+        raise ValueError("Invalid padding length")
+    if data[-pad_len:] != bytes([pad_len]) * pad_len:
+        raise ValueError("Invalid padding bytes")
+    return data[:-pad_len]
+
+def zero_scores() -> dict:
+    return {"quality": 0, "completeness": 0, "consistency": 0, "relevance": 0}
+
+def flag_bad_data(
+    texts: List[str],
+    images: List[bytes],
+    dfs: List[pd.DataFrame],
+    names: List[str]
+) -> List[Issue]:
+
+    issues: List[Issue] = []
+    cfg = BAD_DATA_CONFIG   # dict is up there somewhere
+
+    # ---------- Tabular ----------
+    for df, fname in zip(dfs, names):
+        # missing
+        miss = df.isna().mean()
+        bad_cols = miss[miss > cfg["missing_threshold"]].index.tolist()
+        if bad_cols:
+            issues.append(Issue(file=fname, type="missing",
+                               details=f"Columns >{cfg['missing_threshold']*100:.0f}% NaN: {bad_cols}"))
+
+        # duplicates
+        dup_frac = df.duplicated().mean()
+        if dup_frac > cfg["duplicate_threshold"]:
+            issues.append(Issue(file=fname, type="duplicate",
+                               details=f"{dup_frac*100:.1f}% duplicate rows"))
+
+        # outliers (numeric)
+        for col in df.select_dtypes(include="number"):
+            z = np.abs((df[col] - df[col].mean()) / df[col].std())
+            if (z > cfg["z_score_threshold"]).any():
+                issues.append(Issue(file=fname, type="outlier",
+                                   details=f"{(z>cfg['z_score_threshold']).sum()} outliers in '{col}'"))
+
+    # ---------- Text ----------
+    for txt, fname in zip(texts, names):
+        if not txt.strip():
+            issues.append(Issue(file=fname, type="text", details="Empty"))
+            continue
+        if len(txt) < cfg["text_min_len"]:
+            issues.append(Issue(file=fname, type="text", details="Too short"))
+        if len(txt) > cfg["text_max_len"]:
+            issues.append(Issue(file=fname, type="text", details="Too long"))
+        if sum(c.isalnum() or c.isspace() for c in txt) / len(txt) < 0.1:
+            issues.append(Issue(file=fname, type="text", details="Gibberish"))
+
+    # ---------- Images ----------
+    for img_bytes, fname in zip(images, names):
+        try:
+            img = Image.open(BytesIO(img_bytes)).convert("RGB")
+            w, h = img.size
+            if min(w, h) < cfg["image_min_size"]:
+                issues.append(Issue(file=fname, type="image", details="Too small"))
+                continue
+            arr = np.array(img)
+            if np.mean(np.all(arr == 0, axis=-1)) > cfg["image_max_black"]:
+                issues.append(Issue(file=fname, type="image", details="Mostly black"))
+        except Exception as e:
+            issues.append(Issue(file=fname, type="image", details=f"Corrupt: {e}"))
+
+    return issues
+
+
+
+def combine_scores(text_s: dict, img_s: dict, has_text: bool, has_img: bool) -> dict:
+    if has_text and has_img:
+        return {k: int(0.6 * text_s[k] + 0.4 * img_s[k]) for k in text_s}
+    return text_s if has_text else img_s
+
+
+
+def ai_verify_data(decrypted_data: bytes) -> tuple[dict, str, List[Issue]]:
+    
+
+    issues: List[Issue] = []
+
+    text_data: List[str] = []          # plain strings
+    image_data: List[bytes] = []       # raw image bytes
+    tabular_data: List[pd.DataFrame] = []   # pandas DataFrames
+    file_names: List[str] = []         # corresponding file name for each entry
+
+    # ---- ZIP or single file ------------------------------------------------
+    if zipfile.is_zipfile(BytesIO(decrypted_data)):
+        with zipfile.ZipFile(BytesIO(decrypted_data), 'r') as zf:
+            for name in zf.namelist():
+                fbytes = zf.read(name)
+                ftype, _ = mimetypes.guess_type(name)
+
+                # ---- unsupported file type (already handled by process_file) ----
+                if ftype not in [
+                    'application/json', 'text/csv', 'application/octet-stream',
+                    'text/plain',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'image/png', 'image/jpeg'
+                ]:
+                    issues.append(Issue(
+                        file=name,
+                        type="unsupported",
+                        details="Resend in JSON/CSV/Parquet/Excel/TXT/PNG/JPEG"
+                    ))
+                    continue
+
+                file_names.append(name)
+
+                # ---- route to the correct bucket -------------------------------
+                if ftype and ftype.startswith('image/'):
+                    image_data.append(fbytes)
+                elif ftype == 'application/json':
+                    text_data.extend(extract_text_from_dict(
+                        json.loads(fbytes.decode('utf-8'))
+                    ))
+                elif ftype == 'text/csv':
+                    tabular_data.append(pd.read_csv(BytesIO(fbytes)))
+                elif name.endswith('.parquet'):
+                    tabular_data.append(pq.read_table(BytesIO(fbytes)).to_pandas())
+                elif name.endswith('.xlsx'):
+                    tabular_data.append(pd.read_excel(BytesIO(fbytes), engine='openpyxl'))
+                elif ftype == 'text/plain':
+                    text_data.append(fbytes.decode('utf-8'))
+    else:
+        # ---- single file ----------------------------------------------------
+        name = "single_file"
+        ftype, _ = mimetypes.guess_type(name)
+
+        file_names.append(name)
+        if ftype and ftype.startswith('image/'):
+            image_data.append(decrypted_data)
+        else:
+            text_data.append(decrypted_data.decode('utf-8'))
+
+    # ---------- 2. FLAG bad data (no removal) ---------------------------
+    flag_issues = flag_bad_data(
+        texts=text_data,
+        images=image_data,
+        dfs=tabular_data,
+        names=file_names
+    )
+    issues.extend(flag_issues)
+
+    # ---------- 3. SCORE the *original* data ----------------------------
+    text_scores = (score_text_data(text_data)
+                   if text_data else zero_scores())
+    img_scores  = (score_image_data(image_data)
+                   if image_data else zero_scores())
+
+    final_scores = combine_scores(
+        text_s=text_scores,
+        img_s=img_scores,
+        has_text=bool(text_data),
+        has_img=bool(image_data)
+    )
+
+    status = "VERIFIED" if final_scores["quality"] >= 50 else "FAILED"
+
+    return final_scores, status, issues
+    
 
 
 def score_text_data(texts: list) -> dict[str, int]:
@@ -215,34 +353,55 @@ def score_image_data(images: list) -> dict[str, int]:
 
 
 
-# Health check endpoint
+
 @app.post("/verify", response_model=VerifyResponse)
 async def verify_dataset(request: VerifyRequest):
+ 
+
     try:
+        # Step 1: Fetch encrypted data from IPFS
         ipfs_url = f"https://ipfs.io/ipfs/{request.ipfsCid}"
-        response = requests.get(ipfs_url)
+        response = requests.get(ipfs_url, timeout=30)  # Add timeout for large files
         response.raise_for_status()
         encrypted_data = response.content
-
+        
+        # Step 2: Decrypt (AES-256-CBC)
         try:
-            key_iv = base64.b64decode(request.tempDecryptionKey)
-            key, iv = key_iv[:32], key_iv[32:48]
+            # Decode base64 key (backend provides key + IV concatenated)
+            key_iv_b64 = request.tempDecryptionKey
+            key_iv = base64.b64decode(key_iv_b64)
+            if len(key_iv) < 48:
+                raise ValueError("Key+IV must be at least 48 bytes")
+            key = key_iv[:32]  # AES-256 key (32 bytes)
+            iv = key_iv[32:48]  # IV (16 bytes)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid decryption key: {str(e)}")
-
+        
+        # Perform decryption
         backend = default_backend()
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
         decryptor = cipher.decryptor()
         padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
-        decrypted_data = padded_data.rstrip(b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f" * 16)
-
-        scores, status = ai_verify_data(decrypted_data)
-        return VerifyResponse(scores=scores, status=status)
-
+        
+        # Unpad with proper PKCS7
+        decrypted_data = unpad_pkcs7(padded_data)
+        
     except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"IPFS fetch failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"IPFS fetch failed (check CID?): {str(e)}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Decryption failed: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    
+    # Step 3: Run AI verification 
+    scores, status, issues = ai_verify_data(decrypted_data)
+    
+    # Step 4: Return structured response
+    return VerifyResponse(
+        scores=scores,
+        status=status,
+        issues=issues
+    )
 
 if __name__ == "__main__":
     import uvicorn
