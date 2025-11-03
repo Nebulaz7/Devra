@@ -49,6 +49,9 @@ interface SettingItemProps {
   action: string;
 }
 
+const WALLET_ADDRESS_KEY = "walletAddress";
+const savedAddress = localStorage.getItem(WALLET_ADDRESS_KEY);
+
 const Avatar = ({ size }: { address: string; size: number }) => {
   return (
     <div
@@ -141,7 +144,7 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
               onClick={() =>
                 window.open(
                   //      `https://calibration.filscan.io/address/${walletAddress}`,
-                  "_blank",
+                  "_blank"
                 )
               }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-xs sm:text-sm w-fit text-gray-300 hover:text-white group"
@@ -392,7 +395,7 @@ export default function Dashboard() {
     <div className="mt-16 sm:mt-18 md:mt-20 min-h-screen bg-black">
       {/* Profile Banner */}
       <div className="p-3 xs:p-4 sm:p-5 md:p-6">
-        <ProfileBanner walletAddress="0x1234ihdiuhsuisjiu" />
+        <ProfileBanner walletAddress={savedAddress || "Guest"} />
       </div>
 
       {/* Main Content */}
