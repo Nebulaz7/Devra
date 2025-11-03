@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Calendar,
 } from "lucide-react";
+import Banner from "./components/Banner";
 import { truncateAddress } from "@aptos-labs/wallet-adapter-react";
 
 type StatusType = "Low" | "Medium" | "High";
@@ -36,111 +37,111 @@ export default function Datasets() {
   const randomAddress = () => `0x${randomHex(40)}`;
 
   const [datasets] = useState<Dataset[]>(() => [
-    {
-      id: 1,
-      name: "echo_list_extracted.zip",
-      score: "75%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 14:32",
-    },
-    {
-      id: 2,
-      name: "TAVARI – The Intelligent Agent Hub.zip",
-      score: "75%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 14:28",
-    },
-    {
-      id: 3,
-      name: "firefox229363password.zip",
-      score: "40%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 14:15",
-    },
-    {
-      id: 4,
-      name: "customer_feedback_dataset.zip",
-      score: "88%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 13:45",
-    },
-    {
-      id: 5,
-      name: "social_media_comments.zip",
-      score: "62%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 12:20",
-    },
-    {
-      id: 6,
-      name: "product_reviews_cleaned.zip",
-      score: "91%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 11:58",
-    },
-    {
-      id: 7,
-      name: "user_generated_content.zip",
-      score: "35%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 11:22",
-    },
-    {
-      id: 8,
-      name: "support_tickets_archive.zip",
-      score: "78%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 10:45",
-    },
-    {
-      id: 9,
-      name: "forum_posts_batch_01.zip",
-      score: "82%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 09:30",
-    },
-    {
-      id: 10,
-      name: "chat_logs_anonymized.zip",
-      score: "58%",
-      creator: randomAddress(),
-      date: "Oct 7, 2025 09:12",
-    },
-    {
-      id: 11,
-      name: "email_dataset_filtered.zip",
-      score: "93%",
-      creator: randomAddress(),
-      date: "Oct 6, 2025 18:45",
-    },
-    {
-      id: 12,
-      name: "survey_responses_2025.zip",
-      score: "67%",
-      creator: randomAddress(),
-      date: "Oct 6, 2025 17:20",
-    },
-    {
-      id: 13,
-      name: "moderation_queue_export.zip",
-      score: "28%",
-      creator: randomAddress(),
-      date: "Oct 6, 2025 16:55",
-    },
-    {
-      id: 14,
-      name: "wiki_comments_sample.zip",
-      score: "85%",
-      creator: randomAddress(),
-      date: "Oct 6, 2025 15:30",
-    },
-    {
-      id: 15,
-      name: "blog_posts_collection.zip",
-      score: "72%",
-      creator: randomAddress(),
-      date: "Oct 6, 2025 14:18",
-    },
+    // {
+    //   id: 1,
+    //   name: "echo_list_extracted.zip",
+    //   score: "75%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 14:32",
+    // },
+    // {
+    //   id: 2,
+    //   name: "TAVARI – The Intelligent Agent Hub.zip",
+    //   score: "75%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 14:28",
+    // },
+    // {
+    //   id: 3,
+    //   name: "firefox229363password.zip",
+    //   score: "40%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 14:15",
+    // },
+    // {
+    //   id: 4,
+    //   name: "customer_feedback_dataset.zip",
+    //   score: "88%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 13:45",
+    // },
+    // {
+    //   id: 5,
+    //   name: "social_media_comments.zip",
+    //   score: "62%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 12:20",
+    // },
+    // {
+    //   id: 6,
+    //   name: "product_reviews_cleaned.zip",
+    //   score: "91%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 11:58",
+    // },
+    // {
+    //   id: 7,
+    //   name: "user_generated_content.zip",
+    //   score: "35%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 11:22",
+    // },
+    // {
+    //   id: 8,
+    //   name: "support_tickets_archive.zip",
+    //   score: "78%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 10:45",
+    // },
+    // {
+    //   id: 9,
+    //   name: "forum_posts_batch_01.zip",
+    //   score: "82%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 09:30",
+    // },
+    // {
+    //   id: 10,
+    //   name: "chat_logs_anonymized.zip",
+    //   score: "58%",
+    //   creator: randomAddress(),
+    //   date: "Oct 7, 2025 09:12",
+    // },
+    // {
+    //   id: 11,
+    //   name: "email_dataset_filtered.zip",
+    //   score: "93%",
+    //   creator: randomAddress(),
+    //   date: "Oct 6, 2025 18:45",
+    // },
+    // {
+    //   id: 12,
+    //   name: "survey_responses_2025.zip",
+    //   score: "67%",
+    //   creator: randomAddress(),
+    //   date: "Oct 6, 2025 17:20",
+    // },
+    // {
+    //   id: 13,
+    //   name: "moderation_queue_export.zip",
+    //   score: "28%",
+    //   creator: randomAddress(),
+    //   date: "Oct 6, 2025 16:55",
+    // },
+    // {
+    //   id: 14,
+    //   name: "wiki_comments_sample.zip",
+    //   score: "85%",
+    //   creator: randomAddress(),
+    //   date: "Oct 6, 2025 15:30",
+    // },
+    // {
+    //   id: 15,
+    //   name: "blog_posts_collection.zip",
+    //   score: "72%",
+    //   creator: randomAddress(),
+    //   date: "Oct 6, 2025 14:18",
+    // },
   ]);
 
   const totalPages = Math.ceil(datasets.length / itemsPerPage);
@@ -182,12 +183,11 @@ export default function Datasets() {
         No uploads yet
       </h3>
       <p className="text-gray-500 mb-8 text-center max-w-md">
-        Start by uploading your first dataset to begin analyzing quality,
-        structure, and toxicity.
+        Start by minting your first dataset to the decentralized marketplace.
       </p>
       <button
         onClick={() => setUploadModalOpen(true)}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-pink-500 cursor-pointer text-white rounded-full hover:bg-pink-600 transition-colors font-medium"
       >
         <Upload className="w-4 h-4" />
         Upload Your First Dataset
@@ -198,19 +198,11 @@ export default function Datasets() {
   return (
     <div className="min-h-screen mt-16 text-white p-6">
       <div className="w-full relative">
+        {/* Header */}
+        <div className="m-0 p-0">
+          <Banner />
+        </div>
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <Database className="w-10 h-10 text-pink-500" />
-              <h1 className="text-4xl font-bold text-white">My Datasets</h1>
-            </div>
-            <p className="text-gray-400">
-              Manage your purchased and minted datasets on the decentralized
-              marketplace
-            </p>
-          </div>
-
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-pink-500/20">
@@ -358,7 +350,7 @@ export default function Datasets() {
                           >
                             {page}
                           </button>
-                        ),
+                        )
                       )}
                     </div>
 
