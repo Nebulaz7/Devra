@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import "@fontsource/quantico/700.css";
 import {
@@ -28,20 +29,31 @@ const DoubleLineIcon = ({ size = 30, className = "" }) => (
   </svg>
 );
 
+const WALLET_ADDRESS_KEY = "walletAddress";
+
 interface NavProps {
   activeTab?: string;
 }
 
 const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
+  const router = useRouter();
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Close mobile menu when route changes
   useEffect(() => {
+    // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
-    setWalletAddress("0x1234ihdiuhsuisjiu");
+    const savedAddress = localStorage.getItem(WALLET_ADDRESS_KEY);
+    console.log(savedAddress);
+
+    if (savedAddress) {
+      setWalletAddress(savedAddress);
+    } else {
+      setWalletAddress(null);
+      router.push("/connect");
+    }
   }, []);
 
   // Prevent body scroll when mobile menu is open
@@ -72,12 +84,13 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
     setWalletAddress(null);
     setIsWalletDropdownOpen(false);
     setIsMobileMenuOpen(false);
-    window.location.href = "/connect";
+    localStorage.removeItem(WALLET_ADDRESS_KEY);
+    router.push("/");
   };
 
   const formatAddress = (
     address: string,
-    length: "short" | "medium" | "long" = "medium",
+    length: "short" | "medium" | "long" = "medium"
   ) => {
     if (length === "short") {
       return `${address.slice(0, 4)}...${address.slice(-2)}`;
@@ -255,10 +268,10 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                     whileTap={{ scale: 0.98 }}
                   >
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="hidden sm:inline font-mono">
+                    <span className="font-sm hidden sm:inline">
                       {formatAddress(walletAddress, "medium")}
                     </span>
-                    <span className="sm:hidden font-mono">
+                    <span className="font-sm sm:hidden">
                       {formatAddress(walletAddress, "short")}
                     </span>
                     <motion.div
@@ -285,7 +298,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                             <p className="text-xs text-gray-400 mb-1">
                               Wallet Address
                             </p>
-                            <p className="text-xs sm:text-sm text-white font-mono break-all">
+                            <p className="text-md sm:text-sm text-white break-all">
                               {walletAddress}
                             </p>
                           </div>

@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import "@fontsource/quantico/700.css";
-import { ArrowUpRight, Wallet, ArrowLeft, Link2, Search } from "lucide-react";
+import {
+  ArrowUpRight,
+  Wallet,
+  ArrowLeft,
+  Link2,
+  Search,
+  User,
+} from "lucide-react";
 import { ethers } from "ethers";
 
 const MOONBASE_ALPHA = {
@@ -28,11 +35,10 @@ const Connect = () => {
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
+  const WALLET_ADDRESS_KEY = "walletAddress";
 
-  // Check if wallet is already connected on mount
+  // Only set up event listeners, don't auto-connect
   useEffect(() => {
-    checkIfWalletConnected();
-
     if (typeof window !== "undefined" && window.ethereum) {
       window.ethereum.on("accountsChanged", handleAccountsChanged);
       window.ethereum.on("chainChanged", handleChainChanged);
@@ -54,31 +60,14 @@ const Connect = () => {
     setIsCorrectNetwork(chainId === 1287);
   }, [chainId]);
 
-  const checkIfWalletConnected = async () => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      return;
-    }
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.listAccounts();
-      const network = await provider.getNetwork();
-
-      if (accounts.length > 0) {
-        setAccount(accounts[0].address);
-        setChainId(Number(network.chainId));
-      }
-    } catch (error) {
-      console.error("Error checking wallet connection:", error);
-    }
-  };
-
   const handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length > 0) {
       setAccount(accounts[0]);
+      localStorage.setItem(WALLET_ADDRESS_KEY, accounts[0]);
       setError(null);
     } else {
       setAccount(null);
+      localStorage.removeItem(WALLET_ADDRESS_KEY);
       setError("Please connect your wallet");
     }
   };
@@ -97,7 +86,6 @@ const Connect = () => {
     setError(null);
 
     try {
-      // Request account access
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
@@ -107,11 +95,12 @@ const Connect = () => {
       setAccount(address);
       setChainId(Number(network.chainId));
 
-      // Check if on correct network
+      // Save to localStorage
+      localStorage.setItem(WALLET_ADDRESS_KEY, address);
+
       if (Number(network.chainId) !== 1287) {
         await switchToMoonbase();
       } else {
-        // Successfully connected and on correct network
         console.log("wallet is connected");
       }
     } catch (error: any) {
