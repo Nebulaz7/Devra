@@ -1,25 +1,53 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import * as fs from 'fs';
-import * as FormData from 'form-data';
+
+interface VerificationResponse {
+  scores: Record<string, number>;
+  issues: Array<{ type: string; message: string }>;
+  status: string;
+}
 
 @Injectable()
 export class VerificationService {
-  private readonly VERIFY_API = process.env.VERIFY_API_URL || 'http://localhost:8000/verify';
+  private readonly aiVerificationUrl = 'http://localhost:8000/verify'; // FastAPI endpoint
 
-  async verifyDataset(file: Express.Multer.File): Promise<any> {
+  async verifyDataset(file: Express.Multer.File): Promise<{
+    scores?: Record<string, number>;
+    issues?: Array<{ type: string; message: string }>;
+    status?: string;
+    isValid: boolean;
+    error?: string;
+  }> {
     try {
-      const form = new FormData();
-      form.append('file', fs.createReadStream(file.path), file.originalname);
+      const formData = new FormData();
+      formData.append(
+        'file',
+        new Blob([new Uint8Array(file.buffer)]),
+        file.originalname,
+      );
 
-      const response = await axios.post(this.VERIFY_API, form, {
-        headers: form.getHeaders(),
+      const response = await axios.post(this.aiVerificationUrl, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
       });
 
-      return response.data;
-    } catch (error) {
-      console.error('❌ AI Verification failed:', error.response?.data || error.message);
-      throw new HttpException('AI verification failed', 500);
+      const { scores, issues, status } = response.data as VerificationResponse;
+
+      return {
+        scores,
+        issues,
+        status,
+        isValid: status === 'VERIFIED',
+      };
+    } catch (error: unknown) {
+      const errorMessage = 
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ AI verification failed:', errorMessage);
+      return {
+        isValid: false,
+        error: 'AI verification service unavailable or failed',
+      };
     }
   }
 }
