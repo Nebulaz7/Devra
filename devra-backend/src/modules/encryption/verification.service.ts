@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { VerifyResultDto } from './dto/verified-file.dto';
 
 interface VerificationResponse {
   scores: Record<string, number>;
@@ -34,12 +35,13 @@ export class VerificationService {
 
       const { scores, issues, status } = response.data as VerificationResponse;
 
-      return {
-        scores,
-        issues,
-        status,
-        isValid: status === 'VERIFIED',
-      };
+      const result = new VerifyResultDto();
+      result.scores = scores;
+      result.issues = issues;
+      result.status = status;
+      result.isValid = status === 'VERIFIED';
+
+      return result;
     } catch (error: unknown) {
       const errorMessage = 
         error instanceof Error ? error.message : 'Unknown error';

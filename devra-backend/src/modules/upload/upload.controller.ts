@@ -14,6 +14,7 @@ import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { UploadQueueService } from '../crust/queue/upload-queue.service';
 import { CrustService } from '../crust/crust.service';
 import { VerificationService } from '../encryption/verification.service';
+import { VerifyResultDto } from '../encryption/dto/verified-file.dto';
 
 @Controller('datasets')
 export class UploadController {
@@ -31,6 +32,7 @@ export class UploadController {
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
     @Body() createDatasetDto: CreateDatasetDto,
+    verifyResultDto: VerifyResultDto,
   ): Promise<{
     message?: string;
     metadata?: CreateDatasetDto;
@@ -38,11 +40,7 @@ export class UploadController {
     encryptedPath?;
     hash?: string;
     error?: string;
-    verification?: {
-      scores?: any;
-      issues?: any[];
-      status?: string;
-    };
+    verification?: VerifyResultDto;
   }> {
     if (!file) return { error: 'No dataset file uploaded' };
 
@@ -57,6 +55,7 @@ export class UploadController {
       return {
         message: 'Dataset verification failed',
         verification: {
+          isValid: verification.isValid,
           scores: verification.scores,
           issues: verification.issues,
           status: verification.status,
@@ -66,10 +65,14 @@ export class UploadController {
 
     const hash = await this.encryptService.hashDataset(file);
 
+    const verificationResult =
+      await this.verificationService.verifyDataset(file);
+
     const encryptionResult = await this.encryptService.encryptDataset(file);
 
     const datasetRecord = await this.datasetRecordService.createRecord(
       createDatasetDto,
+      verificationResult,
       {
         hash,
         aesKeyEncrypted: encryptionResult.encryptedKey, // RSA-encrypted AES key
@@ -94,11 +97,7 @@ export class UploadController {
       metadata: createDatasetDto,
       encryptedPath: encryptionResult.encryptedPath,
       hash,
-      verification: {
-        scores: verification.scores,
-        issues: verification.issues,
-        status: verification.status,
-      },
+      verification: verifyResultDto,
     };
   }
 }

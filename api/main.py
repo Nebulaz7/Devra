@@ -349,6 +349,12 @@ async def verify_dataset(
 
         scores, status, issues = ai_verify_data(raw_bytes)
 
+        print('Verification result:', {
+            'scores': scores,
+            'status': status,
+            'issues': issues,
+        })
+
         return VerifyResponse(
             scores=scores,
             status=status,
