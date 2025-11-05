@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDatasetDto } from '../upload/dto/create-dataset.dto';
+import { VerifyResultDto } from '../encryption/dto/verified-file.dto';
 
 @Injectable()
 export class DatasetRecordService {
@@ -8,6 +9,7 @@ export class DatasetRecordService {
 
   async createRecord(
     metadata: CreateDatasetDto,
+    verification: VerifyResultDto,
     extra: {
       hash: string;
       aesKeyEncrypted: string;
@@ -25,6 +27,13 @@ export class DatasetRecordService {
       throw new Error('Missing or invalid hash in extra');
     }
 
+    const verificationDetails = {
+      scores: verification.scores,
+      issues: verification.issues?.map((issue) => ({ ...issue })),
+      status: verification.status,
+      isValid: verification.isValid,
+    };
+
     const encryptionDetails = {
       aesKeyEncrypted: extra.aesKeyEncrypted,
       vaultKeyRef: extra.vaultKeyRef,
@@ -39,6 +48,7 @@ export class DatasetRecordService {
         owner: metadata.owner ?? 'unknown',
         hash: extra.hash,
         encryption: encryptionDetails,
+        verification: verificationDetails,
         status: 'pending',
       },
     });

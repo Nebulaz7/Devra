@@ -54,7 +54,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
       setWalletAddress(null);
       router.push("/connect");
     }
-  }, []);
+  }, [router]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -223,7 +223,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  window.location.href = "/datasets";
+                  window.location.href = "/test-upload";
                 }}
                 className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-600/25"
               >

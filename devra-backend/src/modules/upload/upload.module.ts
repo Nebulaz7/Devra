@@ -9,6 +9,7 @@ import { UploadQueueService } from '../crust/queue/upload-queue.service';
 import { CrustService } from '../crust/crust.service';
 import { EncryptionModule } from '../encryption/encrypt.module';
 import { CrustModule } from '../crust/crust.module';
+import { VerificationService } from '../encryption/verification.service';
 
 @Module({
   imports: [EncryptionModule, CrustModule],
@@ -21,6 +22,7 @@ import { CrustModule } from '../crust/crust.module';
     UploadQueueService,
     CrustService,
     ConfigService,
+    VerificationService,
   ],
 })
 export class UploadModule {}

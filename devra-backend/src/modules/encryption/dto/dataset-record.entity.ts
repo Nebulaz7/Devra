@@ -17,6 +17,9 @@ export class DatasetRecord {
   @Column('jsonb')
   encryption: any;
 
+  @Column('jsonb')
+  verification: any;
+
   @Column({ nullable: true })
   cidHash: string;
 
