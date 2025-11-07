@@ -15,5 +15,9 @@ export class CreateDatasetDto {
 
   @IsOptional()
   @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
   category?: string;
 }
