@@ -24,6 +24,7 @@ import pyarrow.parquet as pq
 import openpyxl
 import numpy as np
 from typing import List, Dict, Any
+from sentence_transformers import SentenceTransformer, util
 
 
 app = FastAPI(
@@ -53,6 +54,8 @@ resnet_transform = transforms.Compose(
 )
 
 
+sentence_model = SentenceTransformer('all-MiniLM-L6-v2').to(device)
+print("Sentence model loaded!")
 
 class Issue(BaseModel):
     file: str
@@ -107,6 +110,20 @@ def process_file(file_name: str, file_bytes: bytes, file_type: str, text_data: l
                 text_data.append(file_bytes.decode('utf-8'))
         except Exception as e:
             print(f"Error parsing {file_name}: {e}")
+
+
+
+def compute_relevance_score(description: str, texts: List[str]) -> int:
+    if not description or not texts:
+        return 50  # neutral
+
+    desc_emb = sentence_model.encode(description, convert_to_tensor=True)
+    content_embs = sentence_model.encode(texts[:10], convert_to_tensor=True)  # limit
+    similarities = util.cos_sim(desc_emb, content_embs)[0]
+    avg_sim = similarities.mean().item()
+    # Map cosine similarity [-1,1] → [0,100]
+    score = int((avg_sim + 1) * 50)
+    return max(0, min(100, score))
 
 
 def extract_text_from_dict(data, max_depth=3, current_depth=0):
@@ -193,23 +210,21 @@ def combine_scores(text_s: dict, img_s: dict, has_text: bool, has_img: bool) -> 
 
 
 
-def ai_verify_data(raw_bytes: bytes) -> tuple[dict, str, List[Issue]]:
+def ai_verify_data(raw_bytes: bytes, description: str = None) -> tuple[dict, str, List[Issue]]:
     issues: List[Issue] = []
 
-    # ----- 1. Collect raw buckets (original variable names) -----
+    # ----- 1. Collect raw buckets -----
     text_data: List[str] = []
     image_data: List[bytes] = []
     tabular_data: List[pd.DataFrame] = []
     file_names: List[str] = []
 
-    # ----- ZIP handling -----
     if zipfile.is_zipfile(io.BytesIO(raw_bytes)):
         with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as zf:
             for name in zf.namelist():
                 fbytes = zf.read(name)
                 ftype, _ = mimetypes.guess_type(name)
 
-                # ---- unsupported type early-exit ----
                 if ftype not in [
                     "application/json", "text/csv", "application/octet-stream",
                     "text/plain",
@@ -217,20 +232,16 @@ def ai_verify_data(raw_bytes: bytes) -> tuple[dict, str, List[Issue]]:
                     "image/png", "image/jpeg",
                 ]:
                     issues.append(Issue(
-                        file=name,
-                        type="unsupported",
+                        file=name, type="unsupported",
                         details="Supported: JSON/CSV/Parquet/Excel/TXT/PNG/JPEG"
                     ))
                     continue
 
                 file_names.append(name)
-
                 if ftype and ftype.startswith("image/"):
                     image_data.append(fbytes)
                 elif ftype == "application/json":
-                    text_data.extend(extract_text_from_dict(
-                        json.loads(fbytes.decode("utf-8"))
-                    ))
+                    text_data.extend(extract_text_from_dict(json.loads(fbytes.decode("utf-8"))))
                 elif ftype == "text/csv":
                     tabular_data.append(pd.read_csv(io.BytesIO(fbytes)))
                 elif name.endswith(".parquet"):
@@ -240,50 +251,38 @@ def ai_verify_data(raw_bytes: bytes) -> tuple[dict, str, List[Issue]]:
                 elif ftype == "text/plain":
                     text_data.append(fbytes.decode("utf-8"))
     else:
-        # ---- single file ----
         name = "single_file"
         ftype, _ = mimetypes.guess_type(name)
-
         file_names.append(name)
         if ftype and ftype.startswith("image/"):
             image_data.append(raw_bytes)
         else:
             text_data.append(raw_bytes.decode("utf-8"))
 
-    # ----- 2. Flag bad data (no removal) -----
-    flag_issues = flag_bad_data(
-        texts=text_data,
-        images=image_data,
-        dfs=tabular_data,
-        names=file_names,
-    )
+    # ----- 2. Flag bad data -----
+    flag_issues = flag_bad_data(text_data, image_data, tabular_data, file_names)
     issues.extend(flag_issues)
 
-    # ----- 3. Score the *original* data -----
-    text_scores = score_text_data(text_data) if text_data else zero_scores()
-    img_scores  = score_image_data(image_data) if image_data else zero_scores()
+    # ----- 3. Score with description context -----
+    text_scores = score_text_data(text_data, description=description) if text_data else zero_scores()
+    img_scores = score_image_data(image_data) if image_data else zero_scores()
 
     final_scores = combine_scores(
-        text_s=text_scores,
-        img_s=img_scores,
-        has_text=bool(text_data),
-        has_img=bool(image_data),
+        text_s=text_scores, img_s=img_scores,
+        has_text=bool(text_data), has_img=bool(image_data)
     )
 
     status = "VERIFIED" if final_scores["quality"] >= 50 else "FAILED"
     return final_scores, status, issues
 
 
-
-def score_text_data(texts: List[str]) -> dict:
-    """BERT-based perplexity & simple heuristics."""
+def score_text_data(texts: List[str], description: str = None) -> dict:
     if not texts:
         return zero_scores()
 
     perplexities = []
-    for txt in texts[:5]:                     # limit for speed
-        enc = bert_tokenizer(txt, return_tensors="pt",
-                             truncation=True, max_length=512).to(device)
+    for txt in texts[:5]:
+        enc = bert_tokenizer(txt, return_tensors="pt", truncation=True, max_length=512).to(device)
         with torch.no_grad():
             out = bert_model(**enc, labels=enc["input_ids"])
             loss = out.loss
@@ -293,13 +292,13 @@ def score_text_data(texts: List[str]) -> dict:
     quality = max(0, min(100, 100 - avg_perp * 2))
     completeness = 100 if len(texts) >= 5 else len(texts) * 20
     consistency = max(0, min(100, 100 - np.std(perplexities) * 10))
-    relevance = int(np.mean([len(t.split()) for t in texts]) * 5)
+    relevance = compute_relevance_score(description, texts)  # ← USES DESCRIPTION
 
     return {
         "quality": int(quality),
         "completeness": int(completeness),
         "consistency": int(consistency),
-        "relevance": max(0, min(100, relevance)),
+        "relevance": relevance,
     }
 
 def score_image_data(images: List[bytes]) -> dict:
@@ -336,35 +335,17 @@ def score_image_data(images: List[bytes]) -> dict:
 
 @app.post("/verify", response_model=VerifyResponse)
 async def verify_dataset(
-    file: UploadFile = File(..., description="Dataset (single file or ZIP)"),
-    name: str = Form(None, description="Optional dataset name"),
-    description: str = Form(None, description="Optional description"),
+    file: UploadFile = File(...),
+    name: str = Form(None),
+    description: str = Form(None),  # ← Now used!
 ):
+    raw_bytes = await file.read()
+    if not raw_bytes:
+        raise HTTPException(status_code=400, detail="Empty file")
 
+    scores, status, issues = ai_verify_data(raw_bytes, description=description)
 
-    try:
-        raw_bytes = await file.read()
-        if not raw_bytes:
-            raise HTTPException(status_code=400, detail="Empty file")
-
-        scores, status, issues = ai_verify_data(raw_bytes)
-
-        print('Verification result:', {
-            'scores': scores,
-            'status': status,
-            'issues': issues,
-        })
-
-        return VerifyResponse(
-            scores=scores,
-            status=status,
-            issues=issues,
-        )
-
-    except Exception as e:
-        # Generic catch-all – you can refine per-error
-        raise HTTPException(status_code=500, detail=str(e))
-
+    return VerifyResponse(scores=scores, status=status, issues=issues)
 
 #  Health check
 @app.get("/")

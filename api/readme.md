@@ -13,3 +13,4 @@ pandas==2.1.3
 pillow==10.1.0
 pyarrow==14.0.1
 openpyxl==3.1.2
+sentence-transformers==2.2.2
