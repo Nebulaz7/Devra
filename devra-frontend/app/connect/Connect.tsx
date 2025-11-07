@@ -283,7 +283,7 @@ const Connect = () => {
               <div className="relative">
                 <div className="absolute inset-0 bg-pink-500/30 rounded-full blur-md"></div>
                 <svg
-                  className="w-5 h-5 text-pink-400 relative z-10"
+                  className="w-5 h-5 text-pink-500 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
