@@ -119,7 +119,7 @@ contract DatasetNFT is
     constructor() ERC721("DatasetNFT", "DNFT") {
         // Grant the contract deployer the default admin role
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // Grant minter and verifier roles to deployer initially
+        // Grant minter and verifier roles to deployer  ddinitially
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(VERIFIER_ROLE, msg.sender);
     }
