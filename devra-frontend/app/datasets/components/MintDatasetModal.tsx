@@ -157,75 +157,89 @@ export default function MintDatasetModal({
   };
 
   // Step 2: AI Verification
-  const processAIVerification = async () => {
-    setCurrentStep("ai-verification");
+const processAIVerification = async () => {
+  setCurrentStep("ai-verification");
 
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("file", formData.file!);
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("description", formData.description);
+  try {
+    const formDataToSend = new FormData();
+    formDataToSend.append("file", formData.file!);
+    formDataToSend.append("name", formData.name);
+    formDataToSend.append("description", formData.description);
 
-      const response = await fetch("https://localhost:5000/datasets/verify", {
-        method: "POST",
-        body: formDataToSend,
-      });
+    const response = await fetch("http://localhost:5000/datasets/verify", {
+      method: "POST",
+      body: formDataToSend,
+    });
 
-      if (!response.ok) {
-        throw new Error("AI verification failed");
-      }
+    if (!response.ok) throw new Error("AI verification failed");
 
-      const data = await response.json();
-      setAiScore(data.score);
+    const data = await response.json();
+    console.log("✅ Verification result:", data);
 
-      // Proceed to encryption
-      await processEncryption(data.fileId);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "AI verification failed");
-      setCurrentStep("upload");
-    }
-  };
+    const score =
+      data.verification?.scores
+        ? Object.values(data.verification.scores)[0] ?? null
+        : null;
+
+    setAiScore(score as number | null);
+
+    // ⚠️ Here's the important fix:
+    // data.fileData is the base64-encoded dataset buffer
+    await processEncryption(data.fileData);
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : "AI verification failed");
+    setCurrentStep("upload");
+  }
+};
 
   // Step 3 & 4: Encryption and IPFS Storage
-  const processEncryption = async (fileId: string) => {
-    setCurrentStep("encryption");
+const processEncryption = async (base64File: string) => {
+  setCurrentStep("encryption");
 
-    try {
-      // Simulate encryption delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+  try {
+    const response = await fetch("http://localhost:5000/datasets/encrypt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base64File }), // send base64 data here
+    });
 
-      // Move to IPFS storage
-      await processIPFSStorage(fileId);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Encryption failed");
-      setCurrentStep("upload");
-    }
-  };
+    if (!response.ok) throw new Error("Encryption failed");
 
-  const processIPFSStorage = async (fileId: string) => {
-    setCurrentStep("ipfs-storage");
+    const data = await response.json();
+    console.log("🔐 Encryption result:", data);
 
-    try {
-      const response = await fetch("https://localhost:5000/datasets/store-ipfs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId }),
-      });
+    // Now pass the encrypted file path to next step
+    await processIPFSStorage(data.encryption.encryptedPath);
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : "Encryption failed");
+    setCurrentStep("upload");
+  }
+};
 
-      if (!response.ok) {
-        throw new Error("IPFS storage failed");
-      }
+const processIPFSStorage = async (filePath: string) => {
+  setCurrentStep("ipfs-storage");
 
-      const data = await response.json();
-      setIpfsCid(data.cid);
+  try {
+    const response = await fetch("http://localhost:5000/datasets/store-ipfs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filePath }), // renamed correctly
+    });
 
-      // Proceed to minting
-      await processMinting(data.cid);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "IPFS storage failed");
-      setCurrentStep("upload");
-    }
-  };
+    if (!response.ok) throw new Error("IPFS storage failed");
+
+    const data = await response.json();
+    console.log("🌐 IPFS upload result:", data);
+
+    setIpfsCid(data.cid);
+
+    // Proceed to minting (you already have this)
+    await processMinting(data.cid);
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : "IPFS storage failed");
+    setCurrentStep("upload");
+  }
+};
 
   // Step 5, 6, 7: Mint NFT and Update with AI Score
   const processMinting = async (cid: string) => {

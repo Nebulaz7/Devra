@@ -4,15 +4,17 @@ import {
   UploadedFile,
   UseInterceptors,
   Body,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EncryptService } from '../encryption/encrypt.service';
+import type { Request } from 'express';
+import { CreateDatasetDto } from './dto/create-dataset.dto';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { UploadQueueService } from '../crust/queue/upload-queue.service';
 import { CrustService } from '../crust/crust.service';
 import { VerificationService } from '../verification/verification.service';
 import { VerifyResultDto } from '../encryption/dto/verified-file.dto';
-import { CreateDatasetDto } from './dto/create-dataset.dto';
 
 @Controller('datasets')
 export class UploadController {
@@ -24,108 +26,78 @@ export class UploadController {
     private readonly verificationService: VerificationService,
   ) {}
 
-  // 1️⃣ VERIFY DATASET
-  @Post('verify')
+  @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async verifyDataset(
+  async uploadDataset(
     @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
     @Body() createDatasetDto: CreateDatasetDto,
-  ) {
+    verifyResultDto: VerifyResultDto,
+  ): Promise<{
+    message?: string;
+    metadata?: CreateDatasetDto;
+    datasetRecord?;
+    encryptedPath?;
+    hash?: string;
+    error?: string;
+    verification?: VerifyResultDto;
+  }> {
     if (!file) return { error: 'No dataset file uploaded' };
 
-    const verification = await this.verificationService.verifyDataset(
-      file,
-      createDatasetDto.description,
-    );
+    const verification = await this.verificationService.verifyDataset(file);
 
     if (!verification.isValid) {
+      console.log('verification:', {
+        scores: verification.scores,
+        issues: verification.issues,
+        status: verification.status,
+      });
       return {
         message: 'Dataset verification failed',
-        verification,
+        verification: {
+          isValid: verification.isValid,
+          scores: verification.scores,
+          issues: verification.issues,
+          status: verification.status,
+        },
       };
     }
 
-    console.log('✅ Dataset verified:', verification);
+    const hash = await this.encryptService.hashDataset(file);
 
-    // Temporarily return file buffer as base64 for next step (you can store it instead)
-    const base64File = file.buffer.toString('base64');
+    const verificationResult =
+      await this.verificationService.verifyDataset(file);
 
-    return {
-      message: 'Dataset verified successfully',
-      verification,
-      fileData: base64File, // or fileId if you store it on disk
-    };
-  }
+    const encryptionResult = await this.encryptService.encryptDataset(file);
 
-  // 2️⃣ ENCRYPT DATASET
-  @Post('encrypt')
-  async encryptDataset(@Body() body: { base64File: string }) {
-    if (!body.base64File) return { error: 'Missing file data' };
-
-    const buffer = Buffer.from(body.base64File, 'base64');
-
-    const encryptionResult = await this.encryptService.encryptDataset({
-      buffer,
-      originalname: 'dataset.zip',
-    } as Express.Multer.File);
-
-    return {
-      message: 'Dataset encrypted successfully',
-      encryption: {
-        encryptedPath: encryptionResult.encryptedPath,
-        aesKeyEncrypted: encryptionResult.encryptedKey,
+    const datasetRecord = await this.datasetRecordService.createRecord(
+      createDatasetDto,
+      verificationResult,
+      {
+        hash,
+        aesKeyEncrypted: encryptionResult.encryptedKey, // RSA-encrypted AES key
+        vaultKeyRef: 'private-key', // Reference in Vault
         iv: encryptionResult.iv,
         authTag: encryptionResult.authTag,
       },
-    };
-  }
-
-  // 3️⃣ STORE TO IPFS / CRUST
-  @Post('store-ipfs')
-  async storeDataset(
-    @Body() body: { filePath: string; metadata: CreateDatasetDto },
-  ) {
-    if (!body.filePath) return { error: 'Missing encrypted file path' };
-
-    const cid = await this.crustService.uploadToCrust(body.filePath);
-
-    return {
-      message: 'Dataset uploaded to IPFS successfully',
-      cid,
-    };
-  }
-
-  // 4️⃣ FINALIZE AND RECORD (optional)
-  @Post('finalize')
-  async finalizeRecord(
-    @Body()
-    body: {
-      metadata: CreateDatasetDto;
-      verification: VerifyResultDto;
-      encryption: {
-        hash: string;
-        aesKeyEncrypted: string;
-        vaultKeyRef: string;
-        iv: string;
-        authTag: string;
-      };
-    },
-  ) {
-    const datasetRecord = await this.datasetRecordService.createRecord(
-      body.metadata,
-      body.verification,
-      body.encryption,
     );
+    console.log('🗂️  Dataset record created:', datasetRecord);
 
     await this.uploadQueueService.addJob({
       datasetId: datasetRecord.id,
-      filePath: body.encryption.hash,
-      metadata: body.metadata,
+      filePath: encryptionResult.encryptedPath,
+      metadata: createDatasetDto,
     });
 
+    console.log('🗂️  Dataset record created:', datasetRecord);
+
     return {
-      message: 'Dataset finalized and job queued successfully',
+      message: 'Dataset verified, encrypted, and uploaded successfully',
       datasetRecord,
+      metadata: createDatasetDto,
+      encryptedPath: encryptionResult.encryptedPath,
+      hash,
+      verification: verifyResultDto,
     };
   }
 }

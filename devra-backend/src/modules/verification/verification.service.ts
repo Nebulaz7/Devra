@@ -22,7 +22,18 @@ export class VerificationService {
       const formData = new FormData();
 
       // 🧠 Attach the file as a stream so FastAPI can read it properly
-      formData.append('file', fs.createReadStream(file.path));
+      if (file.path) {
+        formData.append('file', fs.createReadStream(file.path), {
+          filename: file.originalname,
+        });
+      } else if (file.buffer) {
+        formData.append('file', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      } else {
+        throw new HttpException('Uploaded file missing path and buffer', 400);
+      }
       formData.append('name', file.originalname);
       formData.append('description', description || '');
 
