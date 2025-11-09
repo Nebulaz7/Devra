@@ -341,7 +341,9 @@ export default function Dashboard() {
 
   const checkWalletConnection = async () => {
     if (typeof window === "undefined" || !window.ethereum) {
-      router.push("/connect");
+      //  router.push("/connect");
+      console.log("Cannot find the wallet address");
+
       return;
     }
 
@@ -351,12 +353,14 @@ export default function Dashboard() {
       const network = await provider.getNetwork();
 
       if (accounts.length === 0) {
-        router.push("/connect");
+        // router.push("/connect");
+        console.log("No accounts found");
         return;
       }
 
       if (Number(network.chainId) !== 1287) {
-        router.push("/connect");
+        // router.push("/connect");
+        console.log("Incorrect network");
         return;
       }
 
@@ -371,7 +375,8 @@ export default function Dashboard() {
       await fetchDashboardData(address, provider);
     } catch (error) {
       console.error("Error checking wallet:", error);
-      router.push("/connect");
+      // router.push("/connect");
+      console.log("Cannot find wallet address");
     }
   };
 
