@@ -222,8 +222,14 @@ const Connect = () => {
       id: "talisman",
       name: "Talisman",
       icon: (
-        <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-          <Image src="/talisman.png" alt="Talisman" width={20} height={20} />
+        <div className="rounded-lg flex items-center justify-center">
+          <Image
+            className="w-8 h-8"
+            src="/talisman.png"
+            alt="Talisman"
+            width={20}
+            height={20}
+          />
         </div>
       ),
       description: "Connect with Talisman",
@@ -568,7 +574,7 @@ const Connect = () => {
                     key={wallet.id}
                     onClick={() => handleConnect(wallet.id)}
                     disabled={isPending}
-                    className="w-full bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl p-4 flex items-center gap-4 hover:from-pink-500/20 hover:to-purple-500/20 hover:border-pink-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full cursor-pointer bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl p-4 flex items-center gap-4 hover:from-pink-500/20 hover:to-purple-500/20 hover:border-pink-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
