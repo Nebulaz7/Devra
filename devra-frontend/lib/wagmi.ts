@@ -2,6 +2,14 @@ import type { Chain } from "wagmi/chains";
 import { createConfig, createStorage, http } from "wagmi";
 import { injected } from "@wagmi/connectors";
 
+// Extend Window interface for wallet providers
+declare global {
+  interface Window {
+    ethereum?: any;
+    talisman?: any;
+  }
+}
+
 // Westend Asset Hub configuration
 export const westendAssetHub = {
   id: 420420421, // Westend Asset Hub Chain ID
@@ -32,15 +40,12 @@ export const config = createConfig({
       target: "metaMask",
     }),
     injected({
-      target() {
-        return {
+      target: (() =>
+        ({
           id: "talisman",
           name: "Talisman",
-          provider(window) {
-            return window?.talisman;
-          },
-        };
-      },
+          provider: (win?: any) => (win as any)?.talisman,
+        } as any)) as any,
     }),
   ],
   storage: createStorage({
