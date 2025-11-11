@@ -15,7 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
-import { passetHub } from "@/lib/wagmi";
+import { westendAssetHub } from "@/lib/wagmi";
 
 const Connect = () => {
   const router = useRouter();
@@ -29,7 +29,7 @@ const Connect = () => {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
 
-  const isCorrectNetwork = chain?.id === passetHub.id;
+  const isCorrectNetwork = chain?.id === westendAssetHub.id;
 
   // Auto-redirect when connected to correct network
   useEffect(() => {
@@ -56,7 +56,7 @@ const Connect = () => {
           onSuccess: () => {
             setShowWalletModal(false);
             // Check if we need to switch network
-            if (chain?.id !== passetHub.id) {
+            if (chain?.id !== westendAssetHub.id) {
               handleSwitchNetwork();
             }
           },
@@ -68,7 +68,7 @@ const Connect = () => {
   // Handle network switch
   const handleSwitchNetwork = () => {
     switchChain(
-      { chainId: passetHub.id },
+      { chainId: westendAssetHub.id },
       {
         onError: (error) => {
           setError(
@@ -324,7 +324,7 @@ const Connect = () => {
           <span style={{ fontFamily: "quantico, sans-serif" }}>Devra</span>
         </h1>
         <p className="pb-6 text-sm text-gray-400">
-          To use Devra you must connect to Paseo Asset Hub testnet
+          To use Devra you must connect to Westend Asset Hub testnet
         </p>
 
         {/* Connect wallet button */}
@@ -379,7 +379,7 @@ const Connect = () => {
                     )}
                   </span>
                   <p className="text-white font-medium text-sm">
-                    Paseo Asset Hub
+                    Westend Asset Hub
                   </p>
                 </div>
               </div>
@@ -387,7 +387,7 @@ const Connect = () => {
               {/* Chain ID Badge */}
               <div className="ml-auto">
                 <span className="text-[10px] bg-pink-500/20 text-pink-300 px-2 py-1 rounded-full border border-purple-500/30">
-                  Chain: 420420422
+                  Chain: 420420421
                 </span>
               </div>
             </div>
@@ -431,12 +431,12 @@ const Connect = () => {
                         RPC URL
                       </p>
                       <a
-                        href="https://testnet-passet-hub-eth-rpc.polkadot.io"
+                        href="https://westend-asset-hub-eth-rpc.polkadot.io"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-pink-400 hover:text-pink-300 text-[11px] break-all transition duration-200 flex items-center gap-1"
                       >
-                        https://testnet-passet-hub-eth-rpc.polkadot.io
+                        https://westend-asset-hub-eth-rpc.polkadot.io
                         <ArrowUpRight size={10} className="flex-shrink-0" />
                       </a>
                     </div>
@@ -485,12 +485,12 @@ const Connect = () => {
                 <span>Testnet Only</span>
               </Link>
               <a
-                href="https://faucet.polkadot.io/?parachain=1111"
+                href="https://faucet.polkadot.io/westend?parachain=1000"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-pink-400 hover:text-pink-300 flex items-center gap-1 transition duration-200"
               >
-                Get PAS Tokens
+                Get WND Tokens
                 <ArrowUpRight size={12} />
               </a>
             </div>
