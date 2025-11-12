@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ShoppingCart,
@@ -166,7 +167,9 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
         </div>
 
         {/* View Details Link */}
-        <button
+        <Link
+          href={`/marketplace/${dataset.tokenId}`}
+          passHref
           onClick={() => {
             toast.success("Opening dataset details...");
             // Navigate to details page
@@ -175,7 +178,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
         >
           View Details
           <ExternalLink className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-        </button>
+        </Link>
       </div>
 
       {/* Corner Accent */}
