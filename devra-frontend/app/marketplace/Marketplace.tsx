@@ -1,277 +1,353 @@
-import React, { useState } from "react";
-import { HiOutlineCollection, HiOutlineRefresh } from "react-icons/hi";
-import CampaignCard from "../components/DatasetCard";
+"use client";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  RefreshCw,
+  Filter,
+  Loader2,
+  Package,
+  TrendingUp,
+  Star,
+  Clock,
+  X,
+  ChevronDown,
+} from "lucide-react";
+import { useAccount } from "wagmi";
+import toast from "react-hot-toast";
+import { useTotalSupply } from "@/lib/contracts/useDataset";
 import Banner from "./components/Banner";
+import DatasetCard from "./components/DatasetCard";
 
-const mockCampaigns = [
-  {
-    campaign_id: "1",
-    campaign_type: "dataset",
-    onchain_campaign_id: "onchain-1",
-    creator_wallet_address: "0x1234567890abcdef1234567890abcdef12345678",
-    current_contributions: 100,
-    description: "High-quality medical imaging data for AI training",
-    expiration: Date.now() + 1000000,
-    is_active: true,
-    title: "Medical Image Dataset Collection",
-    dataset_price: 5,
-    chunk_count: "4 GB",
-    data_format: "json",
-    score: "96%",
-    file_size: "2.5 GB",
-    ai_verified_status: true,
-    fdc_verified_status: true,
-    wallet_address: "0x1234567890abcdef1234567890abcdef12345678",
-    max_data_count: "5 GB",
-    total_budget: 5000,
-    unit_price: 5,
-  },
-  {
-    campaign_id: "2",
-    campaign_type: "dataset",
-    onchain_campaign_id: "onchain-2",
-    creator_wallet_address: "0xabcdef1234567890abcdef1234567890abcdef12",
-    current_contributions: 200,
-    description: "Multilingual text dataset with annotations",
-    expiration: Date.now() + 2000000,
-    is_active: true,
-    title: "Natural Language Processing Corpus",
-    dataset_price: 8,
-    chunk_count: "6 GB",
-    data_format: "csv",
-    score: "90%",
-    file_size: "1.2 GB",
-    ai_verified_status: true,
-    fdc_verified_status: true,
-    wallet_address: "0xabcdef1234567890abcdef1234567890abcdef12",
-    max_data_count: "7 GB",
-    total_budget: 40000,
-    unit_price: 8,
-  },
-  {
-    campaign_id: "3",
-    campaign_type: "dataset",
-    onchain_campaign_id: "onchain-3",
-    creator_wallet_address: "0x7890abcdef1234567890abcdef1234567890abcd",
-    current_contributions: 150,
-    description: "Labeled images for object detection models",
-    expiration: Date.now() + 3000000,
-    is_active: true,
-    title: "Computer Vision Training Set",
-    dataset_price: 12,
-    chunk_count: 2500,
-    data_format: "json",
-    score: "80%",
-    file_size: "5.8 GB",
-    ai_verified_status: true,
-    fdc_verified_status: false,
-    wallet_address: "0x7890abcdef1234567890abcdef1234567890abcd",
-    max_data_count: "7 GB",
-    total_budget: 30000,
-    unit_price: 12,
-  },
-  {
-    campaign_id: "4",
-    campaign_type: "dataset",
-    onchain_campaign_id: "onchain-4",
-    creator_wallet_address: "0x4567890abcdef1234567890abcdef1234567890",
-    current_contributions: 300,
-    description: "Historical stock market data with indicators",
-    expiration: Date.now() + 4000000,
-    is_active: true,
-    title: "Financial Time Series Data",
-    dataset_price: 15,
-    chunk_count: "9 GB",
-    data_format: "csv",
-    score: "60%",
-    file_size: "3.4 GB",
-    ai_verified_status: true,
-    fdc_verified_status: true,
-    wallet_address: "0x4567890abcdef1234567890abcdef1234567890",
-    max_data_count: "10 GB",
-    total_budget: 150000,
-    unit_price: 15,
-  },
-  {
-    campaign_id: "5",
-    campaign_type: "dataset",
-    onchain_campaign_id: "onchain-5",
-    creator_wallet_address: "0xdef1234567890abcdef1234567890abcdef12345",
-    current_contributions: 50,
-    description: "Audio samples with transcriptions",
-    expiration: Date.now() + 5000000,
-    is_active: true,
-    title: "Speech Recognition Dataset",
-    dataset_price: 20,
-    chunk_count: 3000,
-    data_format: "json",
-    score: "85%",
-    file_size: "8.2 GB",
-    ai_verified_status: false,
-    fdc_verified_status: true,
-    wallet_address: "0xdef1234567890abcdef1234567890abcdef12345",
-    max_data_count: "8.2 GB",
-    total_budget: 60000,
-    unit_price: 20,
-  },
-  {
-    campaign_id: "6",
-    campaign_type: "dataset",
-    onchain_campaign_id: "onchain-6",
-    creator_wallet_address: "0x234567890abcdef1234567890abcdef123456789",
-    current_contributions: 80,
-    description: "Customer reviews with sentiment labels",
-    expiration: Date.now() + 6000000,
-    is_active: true,
-    title: "Sentiment Analysis Collection",
-    dataset_price: 7,
-    chunk_count: 7500,
-    data_format: "csv",
-    score: "92%",
-    file_size: "900 MB",
-    ai_verified_status: true,
-    fdc_verified_status: true,
-    wallet_address: "0x234567890abcdef1234567890abcdef123456789",
-    max_data_count: "16 GB",
-    total_budget: 52500,
-    unit_price: 7,
-  },
+const CATEGORIES = [
+  "All",
+  "Medicine",
+  "Computer Vision",
+  "NLP",
+  "Finance",
+  "Audio",
+  "Gaming",
 ];
 
-const CampaignCardSkeleton = () => {
-  return (
-    <div className="border-2 border-pink-200 rounded-xl p-6 h-[260px] animate-pulse bg-gray-200">
-      <div className="flex items-center gap-3">
-        <div className="w-[50px] h-[50px] rounded-lg bg-pink-100"></div>
-        <div className="flex-1">
-          <div className="h-4 bg-pink-100 rounded w-3/4 mb-2"></div>
-          <div className="h-3 bg-pink-100 rounded w-1/2"></div>
-        </div>
-      </div>
-      <div className="mt-3">
-        <div className="flex gap-2">
-          <div className="h-6 bg-pink-100 rounded w-24"></div>
-          <div className="h-6 bg-pink-100 rounded w-32"></div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4 mt-6 ml-2">
-        <div className="border-r border-b border-pink-200">
-          <div className="h-3 bg-pink-100 rounded w-16 mb-2"></div>
-          <div className="h-4 bg-pink-100 rounded w-12"></div>
-        </div>
-        <div className="border-b pb-2 border-pink-200 pl-9">
-          <div className="h-3 bg-pink-100 rounded w-16 mb-2"></div>
-          <div className="h-4 bg-pink-100 rounded w-20"></div>
-        </div>
-        <div className="border-r border-pink-200">
-          <div className="h-3 bg-pink-100 rounded w-24 mb-2"></div>
-          <div className="h-4 bg-pink-100 rounded w-12"></div>
-        </div>
-        <div className="pl-9">
-          <div className="h-3 bg-pink-100 rounded w-20 mb-2"></div>
-          <div className="h-4 bg-pink-100 rounded w-16"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
+const SORT_OPTIONS = [
+  { value: "recent", label: "Recently Listed", icon: Clock },
+  { value: "popular", label: "Most Popular", icon: TrendingUp },
+  { value: "price-low", label: "Price: Low to High", icon: Star },
+  { value: "price-high", label: "Price: High to Low", icon: Star },
+];
 
-const ActiveCampaigns = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefetching, setIsRefetching] = useState(false);
-  const [campaigns] = useState(mockCampaigns);
-  const [activeTab, setActiveTab] = useState<"Recent" | "Popular" | "Trending">(
-    "Recent",
-  );
+interface Dataset {
+  tokenId: number;
+  name?: string;
+  creator: string;
+  price: bigint;
+  score: number;
+  cid: string;
+  isListed: boolean;
+}
 
-  const handleRefresh = () => {
-    setIsRefetching(true);
-    setTimeout(() => {
-      setIsRefetching(false);
-    }, 1500);
+const Marketplace = () => {
+  const { address, isConnected } = useAccount();
+  const { total: totalSupply } = useTotalSupply();
+
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [filteredDatasets, setFilteredDatasets] = useState<Dataset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortBy, setSortBy] = useState("recent");
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    fetchMarketplaceData();
+  }, [totalSupply]);
+
+  useEffect(() => {
+    filterAndSortDatasets();
+  }, [datasets, searchQuery, selectedCategory, sortBy]);
+
+  const fetchMarketplaceData = async () => {
+    setIsLoading(true);
+    try {
+      // TODO: Fetch real data from contract
+      // For now, using mock data
+      const mockDatasets: Dataset[] = [
+        {
+          tokenId: 1,
+          name: "Medical Imaging Dataset",
+          creator: "0x1234567890123456789012345678901234567890",
+          price: BigInt("1500000000000"), // 1.5 WND
+          score: 95,
+          cid: "QmX7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T",
+          isListed: true,
+        },
+        {
+          tokenId: 2,
+          name: "NLP Training Corpus",
+          creator: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+          price: BigInt("2000000000000"), // 2 WND
+          score: 88,
+          cid: "QmA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W",
+          isListed: true,
+        },
+      ];
+
+      setDatasets(mockDatasets);
+      toast.success(`Loaded ${mockDatasets.length} datasets`);
+    } catch (error) {
+      console.error("Error fetching marketplace data:", error);
+      toast.error("Failed to load marketplace data");
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    toast.loading("Refreshing marketplace...", { id: "refresh" });
+
+    await fetchMarketplaceData();
+
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success("Marketplace refreshed!", { id: "refresh" });
+    }, 1000);
+  };
+
+  const filterAndSortDatasets = () => {
+    let filtered = [...datasets];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (d) =>
+          d.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.tokenId.toString().includes(searchQuery) ||
+          d.creator.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Category filter (would need category data from backend)
+    // if (selectedCategory !== "All") {
+    //   filtered = filtered.filter(d => d.category === selectedCategory);
+    // }
+
+    // Sorting
+    switch (sortBy) {
+      case "popular":
+        filtered.sort((a, b) => b.score - a.score);
+        break;
+      case "price-low":
+        filtered.sort((a, b) => Number(a.price - b.price));
+        break;
+      case "price-high":
+        filtered.sort((a, b) => Number(b.price - a.price));
+        break;
+      case "recent":
+      default:
+        filtered.sort((a, b) => b.tokenId - a.tokenId);
+        break;
+    }
+
+    setFilteredDatasets(filtered);
+  };
+
+  const handlePurchase = (dataset: Dataset) => {
+    if (!isConnected) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+    // TODO: Implement purchase logic
+    toast.success(`Purchasing Dataset #${dataset.tokenId}...`);
+  };
+
+  const currentSort = SORT_OPTIONS.find((opt) => opt.value === sortBy);
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="w-full relative">
-        {/* Banner Section */}
-        <Banner />
+      <Banner />
 
-        {/* Content container */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Tabs and Refresh button */}
-          <div className="flex justify-between items-center border-b border-gray-800 mb-8 mt-8">
-            <div className="flex items-center gap-8">
-              <button
-                className={`flex items-center gap-2 px-4 py-3 text-white font-medium ${
-                  activeTab === "Recent" ? "border-b-2 border-pink-500" : ""
-                }`}
-                onClick={() => setActiveTab("Recent")}
-              >
-                Recent
-              </button>
-              <button
-                className={`flex items-center gap-2 px-4 py-3 text-white font-medium ${
-                  activeTab === "Popular" ? "border-b-2 border-pink-500" : ""
-                }`}
-                onClick={() => setActiveTab("Popular")}
-              >
-                Popular
-              </button>
-              <button
-                className={`flex items-center gap-2 px-4 py-3 text-white font-medium ${
-                  activeTab === "Trending" ? "border-b-2 border-pink-500" : ""
-                }`}
-                onClick={() => setActiveTab("Trending")}
-              >
-                Trending
-              </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search and Filters Bar */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, token ID, or creator..."
+                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-pink-500/50 transition-all"
+              />
             </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:border-pink-500/50 transition-all min-w-[200px] justify-between"
+              >
+                {currentSort && (
+                  <>
+                    <currentSort.icon className="w-5 h-5 text-pink-500" />
+                    <span className="flex-1 text-left">
+                      {currentSort.label}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        showFilters ? "rotate-180" : ""
+                      }`}
+                    />
+                  </>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full mt-2 right-0 w-full bg-gray-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-10"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setShowFilters(false);
+                          toast.success(`Sorted by ${option.label}`);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors ${
+                          sortBy === option.value
+                            ? "bg-pink-500/10 text-pink-500"
+                            : "text-white"
+                        }`}
+                      >
+                        <option.icon className="w-4 h-4" />
+                        <span className="text-sm">{option.label}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Refresh Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-medium flex items-center gap-2 shadow-lg shadow-pink-500/25 transition-all disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </motion.button>
           </div>
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[...Array(6)].map((_, index) => (
-                <CampaignCardSkeleton key={index} />
-              ))}
-            </div>
-          )}
+          {/* Category Pills */}
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((category) => (
+              <motion.button
+                key={category}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedCategory(category);
+                  toast.success(`Filtered by ${category}`);
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedCategory === category
+                    ? "bg-pink-500 text-white shadow-lg shadow-pink-500/25"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10"
+                }`}
+              >
+                {category}
+              </motion.button>
+            ))}
+          </div>
 
-          {/* Empty State */}
-          {!isLoading && (!campaigns || campaigns.length === 0) && (
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-              <HiOutlineCollection className="w-16 h-16 text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700">
-                No Datasets Available
-              </h3>
-              <p className="text-gray-600 mt-2 max-w-md">
-                There are currently no datasets available. Check back later or
-                contact us to list your dataset.
-              </p>
-            </div>
-          )}
-
-          {/* Campaign Grid */}
-          {!isLoading && campaigns && campaigns.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
-              {campaigns.map((campaign) => (
-                <CampaignCard key={campaign.campaign_id} campaign={campaign} />
-              ))}
-            </div>
-          )}
-
-          {/* Refreshing notification */}
-          {isRefetching && campaigns && campaigns.length > 0 && (
-            <div className="fixed bottom-4 right-4 bg-pink-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
-              <HiOutlineRefresh className="h-5 w-5 animate-spin" />
-              <span>Refreshing listings...</span>
-            </div>
-          )}
+          {/* Results Count */}
+          <div className="flex items-center justify-between text-sm">
+            <p className="text-gray-400">
+              {filteredDatasets.length} dataset
+              {filteredDatasets.length === 1 ? "" : "s"} found
+            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="flex items-center gap-1 text-pink-500 hover:text-pink-400 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Clear search
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-24">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-pink-500 mx-auto mb-4" />
+              <p className="text-gray-400">Loading marketplace...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filteredDatasets.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-24"
+          >
+            <div className="w-20 h-20 rounded-full bg-pink-500/10 flex items-center justify-center mb-6">
+              <Package className="w-10 h-10 text-pink-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">
+              No Datasets Found
+            </h3>
+            <p className="text-gray-400 text-center max-w-md mb-6">
+              {searchQuery
+                ? `No results for "${searchQuery}". Try a different search term.`
+                : "No datasets are currently listed for sale. Check back soon!"}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-medium transition-all"
+              >
+                Clear Search
+              </button>
+            )}
+          </motion.div>
+        )}
+
+        {/* Dataset Grid */}
+        {!isLoading && filteredDatasets.length > 0 && (
+          <motion.div
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {filteredDatasets.map((dataset) => (
+              <DatasetCard
+                key={dataset.tokenId}
+                dataset={dataset}
+                onPurchase={() => handlePurchase(dataset)}
+              />
+            ))}
+          </motion.div>
+        )}
       </div>
     </div>
   );
 };
 
-export default ActiveCampaigns;
+export default Marketplace;

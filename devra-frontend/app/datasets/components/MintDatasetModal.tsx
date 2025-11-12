@@ -12,26 +12,20 @@ import {
   Database,
   Shield,
   Sparkles,
-  ChevronRight,
   Tags,
   FileText,
+  Info,
 } from "lucide-react";
-import { mintDataset } from "@/lib/contractInteractions";
+import toast from "react-hot-toast";
+import { useMintDataset } from "@/lib/contracts/useDataset";
 
 interface MintDatasetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  walletAddress: string;
 }
 
-type FormStep = "details" | "processing";
-type ProcessStep =
-  | "ai-verification"
-  | "encryption"
-  | "ipfs-storage"
-  | "minting"
-  | "success";
+type FormStep = "details" | "processing" | "success";
 
 const CATEGORIES = [
   { id: "medicine", label: "Medicine" },
@@ -52,48 +46,17 @@ export default function MintDatasetModal({
   isOpen,
   onClose,
   onSuccess,
-  walletAddress,
 }: MintDatasetModalProps) {
   const [formStep, setFormStep] = useState<FormStep>("details");
-  const [currentProcessStep, setCurrentProcessStep] =
-    useState<ProcessStep | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     file: null as File | null,
     categories: [] as string[],
   });
-  const [aiScore, setAiScore] = useState<number | null>(null);
-  const [ipfsCid, setIpfsCid] = useState<string>("");
-  const [tokenId, setTokenId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const processSteps = [
-    {
-      step: "ai-verification" as ProcessStep,
-      title: "AI Verification",
-      description: "Analyzing dataset quality",
-      icon: Brain,
-    },
-    {
-      step: "encryption" as ProcessStep,
-      title: "Encryption",
-      description: "Securing your data",
-      icon: Lock,
-    },
-    {
-      step: "ipfs-storage" as ProcessStep,
-      title: "IPFS Storage",
-      description: "Decentralized storage",
-      icon: Database,
-    },
-    {
-      step: "minting" as ProcessStep,
-      title: "Minting NFT",
-      description: "Creating your NFT",
-      icon: Sparkles,
-    },
-  ];
+  const { mint, isPending, isSuccess } = useMintDataset();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,6 +64,7 @@ export default function MintDatasetModal({
 
     if (file.size > 100 * 1024 * 1024) {
       setError("File size must be less than 100MB");
+      toast.error("File size must be less than 100MB");
       return;
     }
 
@@ -112,11 +76,13 @@ export default function MintDatasetModal({
     ];
     if (!allowedTypes.includes(file.type) && !file.name.endsWith(".zip")) {
       setError("Only ZIP, CSV, and JSON files are allowed");
+      toast.error("Only ZIP, CSV, and JSON files are allowed");
       return;
     }
 
     setFormData({ ...formData, file });
     setError(null);
+    toast.success(`File "${file.name}" selected!`);
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -138,148 +104,53 @@ export default function MintDatasetModal({
       setError(
         "Please fill all fields, upload a file, and select at least one category"
       );
+      toast.error("Please complete all required fields");
       return;
     }
 
     setError(null);
     setFormStep("processing");
-    await processAIVerification();
-  };
-
-  const processAIVerification = async () => {
-    setCurrentProcessStep("ai-verification");
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("file", formData.file!);
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("description", formData.description);
-      formDataToSend.append("categories", JSON.stringify(formData.categories));
+      // TODO: Backend integration
+      // 1. Upload file to backend for AI verification
+      // 2. Encrypt the file
+      // 3. Upload to IPFS
+      // 4. Get IPFS CID
+      // 5. Mint NFT with the CID
 
-      const response = await fetch("/api/verify-dataset", {
-        method: "POST",
-        body: formDataToSend,
-      });
+      // Placeholder: Simulate minting with a fake CID
+      const placeholderCID = "QmPlaceholder" + Date.now();
 
-      if (!response.ok) throw new Error("AI verification failed");
+      toast.loading("Minting your dataset NFT...", { id: "minting" });
 
-      const data = await response.json();
-      setAiScore(data.score);
-      await processEncryption(data.fileId);
-    } catch (err: any) {
-      setError(err.message || "AI verification failed");
-      setFormStep("details");
-    }
-  };
+      await mint(placeholderCID);
 
-  const processEncryption = async (fileId: string) => {
-    setCurrentProcessStep("encryption");
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      await processIPFSStorage(fileId);
-    } catch (err: any) {
-      setError(err.message || "Encryption failed");
-      setFormStep("details");
-    }
-  };
-
-  const processIPFSStorage = async (fileId: string) => {
-    setCurrentProcessStep("ipfs-storage");
-
-    try {
-      const response = await fetch("/api/store-ipfs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId }),
-      });
-
-      if (!response.ok) throw new Error("IPFS storage failed");
-
-      const data = await response.json();
-      setIpfsCid(data.cid);
-      await processMinting(data.cid);
-    } catch (err: any) {
-      setError(err.message || "IPFS storage failed");
-      setFormStep("details");
-    }
-  };
-
-  const processMinting = async (cid: string) => {
-    setCurrentProcessStep("minting");
-
-    try {
-      const id = await mintDataset(
-        walletAddress,
-        cid,
-        formData.name,
-        formData.description
-      );
-
-      if (!id) throw new Error("Failed to extract token ID");
-
-      setTokenId(id);
-      await updateNFTMetadata(id, aiScore!, formData.categories);
-      setCurrentProcessStep("success");
+      toast.success("Dataset NFT minted successfully!", { id: "minting" });
+      setFormStep("success");
 
       setTimeout(() => {
         handleClose();
         onSuccess();
-      }, 4000);
+      }, 3000);
     } catch (err: any) {
+      console.error("Mint error:", err);
       setError(err.message || "Minting failed");
+      toast.error("Failed to mint dataset NFT");
       setFormStep("details");
-    }
-  };
-
-  const updateNFTMetadata = async (
-    tokenId: number,
-    score: number,
-    categories: string[]
-  ) => {
-    try {
-      await fetch("/api/update-nft-metadata", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tokenId, aiScore: score, categories }),
-      });
-    } catch (err) {
-      console.error("Failed to update metadata:", err);
     }
   };
 
   const handleClose = () => {
-    if (formStep === "details" || currentProcessStep === "success") {
+    if (formStep === "details" || formStep === "success") {
       setFormData({ name: "", description: "", file: null, categories: [] });
       setFormStep("details");
-      setCurrentProcessStep(null);
-      setAiScore(null);
-      setIpfsCid("");
-      setTokenId(null);
       setError(null);
       onClose();
     }
   };
 
-  const canClose = formStep === "details" || currentProcessStep === "success";
-
-  const getStepStatus = (step: ProcessStep) => {
-    if (currentProcessStep === "success")
-      return step === "success" ? "current" : "completed";
-    if (!currentProcessStep) return "pending";
-
-    const stepOrder = [
-      "ai-verification",
-      "encryption",
-      "ipfs-storage",
-      "minting",
-    ];
-    const currentIndex = stepOrder.indexOf(currentProcessStep);
-    const stepIndex = stepOrder.indexOf(step);
-
-    if (stepIndex < currentIndex) return "completed";
-    if (stepIndex === currentIndex) return "current";
-    return "pending";
-  };
+  const canClose = formStep === "details" || formStep === "success";
 
   return (
     <AnimatePresence>
@@ -293,12 +164,12 @@ export default function MintDatasetModal({
             className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50"
           />
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-0">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-gradient-to-br from-[#1e1d1d] to-[#2a2929] border border-pink-500/30  w-full max-h-[100vh] overflow-y-auto shadow-2xl"
+              className="bg-gradient-to-br from-[#1e1d1d] to-[#2a2929] border border-pink-500/30 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
             >
               {/* Header */}
               <div className="relative p-6 border-b border-white/10 bg-gradient-to-r from-pink-500/10 to-purple-500/10">
@@ -340,6 +211,23 @@ export default function MintDatasetModal({
                   </div>
                 </motion.div>
               )}
+
+              {/* Backend Integration Notice */}
+              <div className="m-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-blue-400 mb-1">
+                      Backend Integration Pending
+                    </p>
+                    <p className="text-blue-300/70">
+                      Full AI verification, encryption, and IPFS storage will be
+                      implemented when backend is ready. Currently minting with
+                      placeholder data.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {/* Form Step */}
               {formStep === "details" && (
@@ -392,7 +280,7 @@ export default function MintDatasetModal({
                       <Tags className="w-4 h-4 text-pink-500" />
                       Categories * (Select all that apply)
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {CATEGORIES.map((category) => {
                         const isSelected = formData.categories.includes(
                           category.id
@@ -423,9 +311,8 @@ export default function MintDatasetModal({
                     </div>
                     {formData.categories.length > 0 && (
                       <p className="text-xs text-pink-400 mt-2">
-                        {formData.categories.length} categor
-                        {formData.categories.length === 1 ? "y" : "ies"}{" "}
-                        selected
+                        {formData.categories.length} category
+                        {formData.categories.length === 1 ? "" : "ies"} selected
                       </p>
                     )}
                   </div>
@@ -507,9 +394,10 @@ export default function MintDatasetModal({
                         !formData.file ||
                         formData.categories.length === 0
                       }
-                      className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-500 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                     >
-                      Mint dataset
+                      <Sparkles className="w-5 h-5" />
+                      Mint Dataset
                     </button>
                   </div>
 
@@ -524,19 +412,19 @@ export default function MintDatasetModal({
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-400">
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="w-3 h-3 text-pink-500" />
+                              <Brain className="w-3 h-3 text-pink-500" />
                               AI Quality Analysis
                             </div>
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="w-3 h-3 text-pink-500" />
+                              <Lock className="w-3 h-3 text-pink-500" />
                               Data Encryption
                             </div>
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="w-3 h-3 text-pink-500" />
+                              <Database className="w-3 h-3 text-pink-500" />
                               IPFS Storage
                             </div>
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="w-3 h-3 text-pink-500" />
+                              <Sparkles className="w-3 h-3 text-pink-500" />
                               NFT Minting
                             </div>
                           </div>
@@ -548,102 +436,36 @@ export default function MintDatasetModal({
               )}
 
               {/* Processing Step */}
-              {formStep === "processing" &&
-                currentProcessStep !== "success" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="p-8"
-                  >
-                    {/* Stepper */}
-                    <div className="mb-12">
-                      <div className="flex items-center justify-between max-w-3xl mx-auto">
-                        {processSteps.map((step, index) => {
-                          const status = getStepStatus(step.step);
-                          const Icon = step.icon;
-
-                          return (
-                            <React.Fragment key={step.step}>
-                              <div className="flex flex-col items-center relative z-10">
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 transition-all ${
-                                    status === "completed"
-                                      ? "bg-green-500 shadow-lg shadow-green-500/50"
-                                      : status === "current"
-                                      ? "bg-pink-500 shadow-lg shadow-pink-500/50 animate-pulse"
-                                      : "bg-white/10 border-2 border-white/20"
-                                  }`}
-                                >
-                                  {status === "completed" ? (
-                                    <CheckCircle className="w-8 h-8 text-white" />
-                                  ) : status === "current" ? (
-                                    <Loader2 className="w-8 h-8 text-white animate-spin" />
-                                  ) : (
-                                    <Icon className="w-7 h-7 text-gray-500" />
-                                  )}
-                                </motion.div>
-                                <p
-                                  className={`text-sm font-semibold text-center max-w-[100px] ${
-                                    status === "pending"
-                                      ? "text-gray-500"
-                                      : "text-white"
-                                  }`}
-                                >
-                                  {step.title}
-                                </p>
-                                <p className="text-xs text-gray-500 text-center mt-1">
-                                  {step.description}
-                                </p>
-                              </div>
-
-                              {index < processSteps.length - 1 && (
-                                <div className="flex-1 h-1 mx-2 -mt-12 relative">
-                                  <div className="absolute inset-0 bg-white/10 rounded-full" />
-                                  <motion.div
-                                    initial={{ width: "0%" }}
-                                    animate={{
-                                      width:
-                                        status === "completed" ? "100%" : "0%",
-                                    }}
-                                    transition={{ duration: 0.5 }}
-                                    className="absolute inset-0 bg-gradient-to-r from-green-500 to-pink-500 rounded-full"
-                                  />
-                                </div>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Processing Message */}
-                    <div className="text-center max-w-md mx-auto">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                        className="w-20 h-20 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-6"
-                      />
-                      <h3 className="text-2xl font-bold text-white mb-2">
-                        Processing Your Dataset
-                      </h3>
-                      <p className="text-gray-400">
-                        Please wait while we verify, encrypt, and mint your
-                        dataset NFT. This usually takes 30-60 seconds.
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
+              {formStep === "processing" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="p-12"
+                >
+                  <div className="text-center max-w-md mx-auto">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      className="w-20 h-20 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-6"
+                    />
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Processing Your Dataset
+                    </h3>
+                    <p className="text-gray-400">
+                      Please wait while we verify, encrypt, and mint your
+                      dataset NFT...
+                    </p>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Success Step */}
-              {currentProcessStep === "success" && (
+              {formStep === "success" && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -669,37 +491,8 @@ export default function MintDatasetModal({
                       Your dataset NFT has been created and is now live on the
                       blockchain
                     </p>
-
-                    <div className="space-y-4 bg-white/5 rounded-2xl p-6 border border-white/10">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Token ID</span>
-                        <span className="text-white font-mono font-bold text-lg">
-                          #{tokenId}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">
-                          AI Quality Score
-                        </span>
-                        <span className="text-green-400 font-bold text-lg">
-                          {aiScore}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">IPFS CID</span>
-                        <span className="text-pink-400 font-mono text-sm">
-                          {ipfsCid.slice(0, 15)}...
-                        </span>
-                      </div>
-                      <div className="pt-3 border-t border-white/10">
-                        <span className="text-gray-400 text-sm block mb-2">
-                          Categories
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-gray-500 mt-6">
-                      Closing automatically in a few seconds...
+                    <p className="text-sm text-gray-500">
+                      Closing automatically...
                     </p>
                   </div>
                 </motion.div>

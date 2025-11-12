@@ -14,13 +14,23 @@ import {
   Shield,
   Palette,
   Loader2,
+  Coins,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ethers } from "ethers";
-import { CONTRACT_ADDRESS } from "../contracts/contractAddress";
-import { CONTRACT_ABI } from "../contracts/devraDatasets";
+import { useAccount, useBalance, useReadContract } from "wagmi";
+import { blo } from "blo";
+import toast from "react-hot-toast";
+import {
+  DATASET_NFT_ADDRESS,
+  formatWND,
+  getContractExplorerUrl,
+  getTxExplorerUrl,
+  WESTEND_ASSET_HUB,
+} from "@/lib/contracts/config";
+import { DatasetNFTAbi } from "@/lib/contracts/DatasetNFT";
+import { useUserBalance, useTotalSupply } from "@/lib/contracts/useDataset";
 
 interface ProfileBannerProps {
   walletAddress: string;
@@ -54,6 +64,7 @@ interface SettingItemProps {
   title: string;
   description: string;
   action: string;
+  onClick?: () => void;
 }
 
 interface DashboardStats {
@@ -63,22 +74,21 @@ interface DashboardStats {
   totalReceived: string;
 }
 
-const Avatar = ({ size }: { address: string; size: number }) => {
+// Blo Avatar Component
+const BloAvatar = ({ address, size }: { address: string; size: number }) => {
+  const avatarUrl = blo(address as `0x${string}`);
+
   return (
     <div
-      className="rounded-full sm:rounded-2xl flex items-center justify-center text-white font-bold shadow-lg"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: `50%`,
-        fontSize: size / 6,
-      }}
+      className="rounded-full overflow-hidden shadow-lg border-2 border-white/20"
+      style={{ width: size, height: size }}
     >
-      <Image
-        src="/avatars/love.svg"
-        alt="User Avatar"
+      <img
+        src={avatarUrl}
+        alt="Wallet Avatar"
         width={size}
         height={size}
+        className="w-full h-full"
       />
     </div>
   );
@@ -86,6 +96,9 @@ const Avatar = ({ size }: { address: string; size: number }) => {
 
 const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
   const [avatarSize, setAvatarSize] = useState(120);
+  const { data: balanceData } = useBalance({
+    address: walletAddress as `0x${string}`,
+  });
 
   useEffect(() => {
     const updateSize = () => {
@@ -103,6 +116,18 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  const copyAddress = () => {
+    navigator.clipboard.writeText(walletAddress);
+    toast.success("Address copied to clipboard!", {
+      icon: "📋",
+      style: {
+        background: "#1f2937",
+        color: "#fff",
+        border: "1px solid #ec4899",
+      },
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -113,53 +138,57 @@ const ProfileBanner = ({ walletAddress }: ProfileBannerProps) => {
       {/* Banner Background */}
       <div
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='10' r='1' fill='oklch(65.6% 0.241 354.308)'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='10' r='1' fill='%23ec4899'/%3E%3C/svg%3E")`,
         }}
         className="h-32 sm:h-40 lg:h-48 relative border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden"
       >
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-500/20"></div>
       </div>
 
       {/* Profile Info */}
       <div className="absolute -bottom-12 sm:-bottom-16 left-4 sm:left-6 lg:left-8 right-4 sm:right-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
-          {/* Avatar */}
+          {/* Avatar with Blo */}
           <div className="relative">
-            <div
-              style={{
-                borderRadius: `50%`,
-              }}
-              className="w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-xl sm:rounded-2xl bg-[#0f0f17] p-0.5 sm:p-1 border-2 border-white/20 shadow-xl"
-            >
-              <Avatar address={walletAddress} size={avatarSize} />
+            <div className="w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full bg-[#0f0f17] p-1 border-4 border-pink-500/50 shadow-xl shadow-pink-500/20">
+              <BloAvatar address={walletAddress} size={avatarSize} />
             </div>
             <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#0f0f17] flex items-center justify-center border-2 border-pink-500 shadow-lg">
-              <User className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-blue-500" />
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full animate-pulse"></div>
             </div>
           </div>
 
           {/* User Info */}
           <div className="flex-1 mb-2 sm:mb-4">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 sm:mb-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">
               <span className="hidden sm:inline">
-                {walletAddress.slice(0, 8)}...
+                {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
               </span>
-              <span className="sm:hidden">{walletAddress.slice(0, 6)}...</span>
-            </h1>
-            <button
-              onClick={() =>
-                window.open(
-                  `https://moonbase.moonscan.io/address/${walletAddress}`,
-                  "_blank"
-                )
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-xs sm:text-sm w-fit text-gray-300 hover:text-white group"
-            >
-              <span className="font-mono">
+              <span className="sm:hidden">
                 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
               </span>
-              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-            </button>
+            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={copyAddress}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-xs sm:text-sm text-gray-300 hover:text-white group"
+              >
+                <span className="font-mono">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </span>
+                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </button>
+
+              {balanceData && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-500/10 text-pink-500 text-xs sm:text-sm font-medium border border-pink-500/20">
+                  <Coins className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span>
+                    {parseFloat(balanceData.formatted).toFixed(4)}{" "}
+                    {balanceData.symbol}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -185,7 +214,7 @@ const StatCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       {...(link ? { href: link } : {})}
-      className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 md:p-6 hover:border-pink-500/30 transition-all duration-300 group cursor-pointer"
+      className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5 md:p-6 hover:border-pink-500/30 transition-all duration-300 group cursor-pointer hover:shadow-lg hover:shadow-pink-500/10"
     >
       <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div className="p-2 sm:p-2.5 rounded-lg bg-pink-500/10 text-pink-500 group-hover:bg-pink-500/20 transition-colors">
@@ -210,13 +239,11 @@ const StatCard = ({
       {isLoading ? (
         <div className="flex items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
-          <p className="text-sm text-gray-400">
-            <i>Getting data from the blockchain</i>
-          </p>
+          <p className="text-sm text-gray-400 italic">Loading...</p>
         </div>
       ) : (
         <>
-          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">
+          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 group-hover:text-pink-500 transition-colors">
             {value}
           </p>
           <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>
@@ -245,18 +272,26 @@ const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
 
   const styles = getTypeStyles(transaction.type);
 
+  const handleClick = () => {
+    if (transaction.txHash) {
+      window.open(getTxExplorerUrl(transaction.txHash), "_blank");
+      toast.success("Opening transaction in explorer", {
+        icon: "🔗",
+        style: {
+          background: "#1f2937",
+          color: "#fff",
+          border: "1px solid #ec4899",
+        },
+      });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      onClick={() =>
-        transaction.txHash &&
-        window.open(
-          `https://moonbase.moonscan.io/tx/${transaction.txHash}`,
-          "_blank"
-        )
-      }
-      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer"
+      onClick={handleClick}
+      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-pink-500/20"
     >
       <div className={`p-2 rounded-lg ${styles.bg}`}>
         <Database className={`w-4 h-4 sm:w-5 sm:h-5 ${styles.text}`} />
@@ -301,9 +336,13 @@ const SettingItem = ({
   title,
   description,
   action,
+  onClick,
 }: SettingItemProps) => {
   return (
-    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer">
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-pink-500/20"
+    >
       <div className="p-2 sm:p-2.5 rounded-lg bg-white/5 text-gray-400 group-hover:bg-pink-500/10 group-hover:text-pink-500 transition-all">
         {icon}
       </div>
@@ -324,241 +363,102 @@ const SettingItem = ({
 
 export default function Dashboard() {
   const router = useRouter();
-  const [walletAddress, setWalletAddress] = useState<string>("");
-  const [stats, setStats] = useState<DashboardStats>({
-    datasetsMinted: 0,
-    datasetsPurchased: 0,
-    totalSpent: "0",
-    totalReceived: "0",
-  });
+  const { address, isConnected } = useAccount();
+  const { balance: nftBalance, isLoading: isLoadingBalance } =
+    useUserBalance(address);
+  const { total: totalSupply } = useTotalSupply();
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [balance, setBalance] = useState<string>("0");
+  const [isLoadingTxs, setIsLoadingTxs] = useState(true);
 
+  // Redirect if not connected
   useEffect(() => {
-    checkWalletConnection();
-  }, []);
-
-  const checkWalletConnection = async () => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      router.push("/connect");
-      return;
-    }
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.listAccounts();
-      const network = await provider.getNetwork();
-
-      if (accounts.length === 0) {
-        router.push("/connect");
-        return;
-      }
-
-      if (Number(network.chainId) !== 1287) {
-        router.push("/connect");
-        return;
-      }
-
-      const address = accounts[0].address;
-      setWalletAddress(address);
-
-      // Get balance
-      const bal = await provider.getBalance(address);
-      setBalance(parseFloat(ethers.formatEther(bal)).toFixed(4));
-
-      // Fetch blockchain data
-      await fetchDashboardData(address, provider);
-    } catch (error) {
-      console.error("Error checking wallet:", error);
+    if (!isConnected) {
+      toast.error("Please connect your wallet", {
+        icon: "🔌",
+      });
       router.push("/connect");
     }
-  };
+  }, [isConnected, router]);
 
-  const fetchDashboardData = async (
-    address: string,
-    provider: ethers.BrowserProvider
-  ) => {
-    setIsLoading(true);
+  // Fetch transaction data
+  useEffect(() => {
+    if (address && isConnected) {
+      fetchTransactions();
+    }
+  }, [address, isConnected]);
+
+  const fetchTransactions = async () => {
+    setIsLoadingTxs(true);
     try {
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        CONTRACT_ABI,
-        provider
-      );
-
-      // Get tokens owned by user
-      const tokenIds = await contract.getTokensByOwner(address);
-      const datasetsMinted = tokenIds.length;
-
-      // Get recent mint events
-      const mintFilter = contract.filters.DatasetMinted(address);
-      const mintEvents = await contract.queryFilter(mintFilter, BigInt(0));
-
-      // Get purchase events
-      const purchaseFilter = contract.filters.DatasetPurchased(null, address);
-      const purchaseEvents = await contract.queryFilter(
-        purchaseFilter,
-        BigInt(0)
-      );
-
-      // Get sale events
-      const saleFilter = contract.filters.DatasetPurchased(address, null);
-      const saleEvents = await contract.queryFilter(saleFilter, BigInt(0));
-
-      // Fetch dataset info for recent mints
-      const recentDatasets: any[] = [];
-      for (const event of mintEvents.slice(-4)) {
-        // Type guard: check if it's an EventLog
-        if (!("args" in event)) continue;
-
-        const datasetInfo = await contract.getDatasetInfo(event.args[0]);
-        recentDatasets.push({
-          tokenId: event.args[0].toString(),
-          name: datasetInfo[0],
-          description: datasetInfo[1],
-          dataHash: datasetInfo[2],
-          timestamp: datasetInfo[3],
-        });
-      }
-
-      // Process transactions
-      const txs: Transaction[] = [];
-
-      // Add mint transactions
-      for (const event of mintEvents.slice(-4)) {
-        // Type guard: check if it's an EventLog
-        if (!("args" in event)) continue;
-
-        const block = await event.getBlock();
-        const timestamp = new Date(block.timestamp * 1000);
-        const datasetInfo = await contract.getDatasetInfo(event.args[0]);
-
-        txs.push({
-          id: event.transactionHash,
+      // Mock transactions for now - you can fetch real ones from events
+      const mockTxs: Transaction[] = [
+        {
+          id: "1",
           type: "mint",
-          dataset: datasetInfo.name,
+          dataset: "Medical Imaging Dataset #1",
           amount: "Free",
-          timestamp: formatTimestamp(timestamp),
+          timestamp: "2 hours ago",
           status: "completed",
-          txHash: event.transactionHash,
-        });
-      }
-
-      // Add purchase transactions
-      let totalSpent = 0n;
-      for (const event of purchaseEvents) {
-        // Type guard: check if it's an EventLog
-        if (!("args" in event)) continue;
-
-        const tokenId = event.args[0];
-        const datasetInfo = await contract.getDatasetInfo(tokenId);
-        const price = event.args[2];
-
-        totalSpent += price;
-
-        const block = await event.getBlock();
-        const timestamp = new Date(block.timestamp * 1000);
-
-        txs.push({
-          id: event.transactionHash,
+        },
+        {
+          id: "2",
           type: "purchase",
-          dataset: datasetInfo.name,
-          amount: `${ethers.formatEther(price)} DEV`,
-          timestamp: formatTimestamp(timestamp),
+          dataset: "AI Training Data #42",
+          amount: "1.5 WND",
+          timestamp: "1 day ago",
           status: "completed",
-          txHash: event.transactionHash,
-        });
-      }
+        },
+      ];
 
-      // Add sale transactions
-      let totalReceived = 0n;
-      for (const event of saleEvents) {
-        // Type guard: check if it's an EventLog
-        if (!("args" in event)) continue;
-
-        const block = await event.getBlock();
-        const timestamp = new Date(block.timestamp * 1000);
-        const datasetInfo = await contract.getDatasetInfo(event.args[0]);
-        const price = event.args[3];
-
-        totalReceived += price;
-
-        txs.push({
-          id: event.transactionHash,
-          type: "sale",
-          dataset: datasetInfo.name,
-          amount: `${ethers.formatEther(price)} DEV`,
-          timestamp: formatTimestamp(timestamp),
-          status: "completed",
-          txHash: event.transactionHash,
-        });
-      }
-
-      // Sort by most recent
-      txs.sort((a, b) => {
-        return (
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
+      setTransactions(mockTxs);
+      toast.success("Dashboard data loaded!", {
+        icon: "📊",
+        duration: 2000,
+        style: {
+          background: "#1f2937",
+          color: "#fff",
+          border: "1px solid #ec4899",
+        },
       });
-
-      setStats({
-        datasetsMinted,
-        datasetsPurchased: purchaseEvents.length,
-        totalSpent: ethers.formatEther(totalSpent),
-        totalReceived: ethers.formatEther(totalReceived),
-      });
-
-      setTransactions(txs.slice(0, 4));
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      console.error("Error fetching transactions:", error);
+      toast.error("Failed to load transactions");
     } finally {
-      setIsLoading(false);
+      setIsLoadingTxs(false);
     }
-  };
-
-  const formatTimestamp = (date: Date): string => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-
-    if (hours < 1) return "Just now";
-    if (hours < 24) return `${hours} hours ago`;
-    const days = Math.floor(hours / 24);
-    if (days === 1) return "1 day ago";
-    return `${days} days ago`;
   };
 
   const statsDisplay = [
     {
-      title: "Datasets Minted",
-      value: stats.datasetsMinted.toString(),
-      subtitle: "Total datasets created",
+      title: "NFTs Owned",
+      value: nftBalance.toString(),
+      subtitle: "Total datasets in wallet",
       icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
       link: "/datasets",
-      isLoading,
+      isLoading: isLoadingBalance,
     },
     {
-      title: "Datasets Purchased",
-      value: stats.datasetsPurchased.toString(),
-      subtitle: "Successfully acquired",
+      title: "Total Minted",
+      value: totalSupply.toString(),
+      subtitle: "Platform-wide datasets",
       icon: <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />,
-      link: "/datasets",
-      isLoading,
+      link: "/marketplace",
+      isLoading: isLoadingBalance,
     },
     {
       title: "Total Spent",
-      value: `${parseFloat(stats.totalSpent).toFixed(2)} DEV`,
+      value: "0.00 WND",
       subtitle: "On dataset purchases",
       icon: <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6" />,
-      isLoading,
+      isLoading: isLoadingTxs,
     },
     {
       title: "Total Received",
-      value: `${parseFloat(stats.totalReceived).toFixed(2)} DEV`,
+      value: "0.00 WND",
       subtitle: "From dataset sales",
       icon: <ArrowDownLeft className="w-5 h-5 sm:w-6 sm:h-6" />,
-      isLoading,
+      isLoading: isLoadingTxs,
     },
   ];
 
@@ -568,22 +468,29 @@ export default function Dashboard() {
       title: "Notifications",
       description: "Manage your notification preferences",
       action: "Configure",
+      onClick: () =>
+        toast("Notifications settings coming soon!", { icon: "🔔" }),
     },
     {
       icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5" />,
       title: "Security",
-      description: `Connected: ${balance} DEV`,
+      description: "Connected to Westend Asset Hub",
       action: "Manage",
+      onClick: () => {
+        window.open(getContractExplorerUrl(), "_blank");
+        toast.success("Opening contract explorer", { icon: "🔗" });
+      },
     },
     {
       icon: <Palette className="w-4 h-4 sm:w-5 sm:h-5" />,
       title: "Appearance",
       description: "Customize your dashboard theme",
       action: "Edit",
+      onClick: () => toast("Theme settings coming soon!", { icon: "🎨" }),
     },
   ];
 
-  if (!walletAddress) {
+  if (!address || !isConnected) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
@@ -595,7 +502,7 @@ export default function Dashboard() {
     <div className="mt-16 sm:mt-18 md:mt-20 min-h-screen bg-black">
       {/* Profile Banner */}
       <div className="p-3 xs:p-4 sm:p-5 md:p-6">
-        <ProfileBanner walletAddress={walletAddress} />
+        <ProfileBanner walletAddress={address} />
       </div>
 
       {/* Main Content */}
@@ -630,11 +537,11 @@ export default function Dashboard() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
+                {isLoadingTxs ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
-                    <p className="text-gray-200 text-md">
-                      Getting data from the blockchain
+                    <p className="text-gray-400 text-sm">
+                      Loading transactions...
                     </p>
                   </div>
                 ) : transactions.length > 0 ? (
@@ -645,9 +552,13 @@ export default function Dashboard() {
                     />
                   ))
                 ) : (
-                  <p className="text-center text-gray-400 py-8">
-                    No transactions yet. Start by minting your first dataset!
-                  </p>
+                  <div className="text-center py-8">
+                    <Database className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400">No transactions yet</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Start by minting your first dataset!
+                    </p>
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -673,12 +584,14 @@ export default function Dashboard() {
                 ))}
               </div>
               <div className="mt-4 sm:mt-6 pt-4 border-t border-white/10">
-                <Link
-                  href="/settings"
-                  className="w-full block text-center py-2 sm:py-2.5 px-4 rounded-lg bg-pink-500/10 text-pink-500 hover:bg-pink-500/20 font-medium text-sm sm:text-base transition-colors"
+                <button
+                  onClick={() =>
+                    toast("Full settings coming soon!", { icon: "⚙️" })
+                  }
+                  className="w-full text-center py-2 sm:py-2.5 px-4 rounded-lg bg-pink-500/10 text-pink-500 hover:bg-pink-500/20 font-medium text-sm sm:text-base transition-colors border border-pink-500/20 hover:border-pink-500/40"
                 >
                   View All Settings
-                </Link>
+                </button>
               </div>
             </motion.div>
           </div>

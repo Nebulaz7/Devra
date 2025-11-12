@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Database } from "lucide-react";
+import { Database, Sparkles } from "lucide-react";
 import "@fontsource/quantico/700.css";
 
 const Banner = () => {
@@ -29,7 +29,7 @@ const Banner = () => {
         </svg>
       </div>
 
-      <div className="relative max-w-7xl  rounded-2xl mb-4 mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative max-w-7xl rounded-2xl mb-4 mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -37,27 +37,31 @@ const Banner = () => {
           transition={{ duration: 0.8 }}
           className="mb-6"
         >
-          <h1
-            style={{ fontFamily: "quantico, sans-serif" }}
-            className="text-4xl flex gap-4 md:text-4xl font-bold text-white mb-4"
-          >
-            <Database className="w-10 h-10 text-pink-500" />
-            <h1 className="text-4xl font-bold text-white">My Datasets</h1>
-          </h1>
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2"></div>
-            <p className="text-gray-400">
-              Manage your purchased and minted datasets on the decentralized
-              marketplace
-            </p>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-pink-500/10 rounded-xl border border-pink-500/20">
+              <Database className="w-10 h-10 text-pink-500" />
+            </div>
+            <div>
+              <h1
+                style={{ fontFamily: "quantico, sans-serif" }}
+                className="text-4xl font-bold text-white flex items-center gap-2"
+              >
+                My Datasets
+                <Sparkles className="w-6 h-6 text-pink-500 animate-pulse" />
+              </h1>
+              <p className="text-gray-400 mt-2">
+                Manage your purchased and minted datasets on the decentralized
+                marketplace
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>
 
       {/* Animated Background Elements */}
-      <div className="absolute top-1/2 left-10 w-20 h-20 bg-pink-500/10 rounded-full animate-pulse"></div>
-      <div className="absolute top-1/4 right-20 w-16 h-16 bg-purple-500/10 rounded-full animate-bounce"></div>
-      <div className="absolute bottom-1/4 left-1/4 w-12 h-12 bg-green-500/10 rounded-full animate-pulse"></div>
+      <div className="absolute top-1/2 left-10 w-20 h-20 bg-pink-500/10 rounded-full animate-pulse blur-xl"></div>
+      <div className="absolute top-1/4 right-20 w-16 h-16 bg-purple-500/10 rounded-full animate-bounce blur-xl"></div>
+      <div className="absolute bottom-1/4 left-1/4 w-12 h-12 bg-pink-500/10 rounded-full animate-pulse blur-xl"></div>
     </div>
   );
 };
