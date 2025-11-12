@@ -16,7 +16,7 @@ import {
   Tags,
   FileText,
 } from "lucide-react";
-import { mintDataset } from "@/lib/contractInteractions";
+// import { mintDataset } from "@/lib/contractInteractions"; contract interaction for old contract
 
 interface MintDatasetModalProps {
   isOpen: boolean;
