@@ -45,6 +45,12 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Wait for client-side hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Redirect to connect page if not connected
   useEffect(() => {
@@ -256,83 +262,89 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 <Plus className="w-5 h-5" />
               </motion.button>
 
-              {/* Wallet Section */}
-              {isConnected && address ? (
-                <div className="relative">
-                  <motion.button
-                    onClick={() =>
-                      setIsWalletDropdownOpen(!isWalletDropdownOpen)
-                    }
-                    className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="font-sm hidden sm:inline">
-                      {formatAddress(address, "medium")}
-                    </span>
-                    <span className="font-sm sm:hidden">
-                      {formatAddress(address, "short")}
-                    </span>
-                    <motion.div
-                      animate={{ rotate: isWalletDropdownOpen ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </motion.div>
-                  </motion.button>
-
-                  {/* Wallet Dropdown Menu */}
-                  <AnimatePresence>
-                    {isWalletDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-64 sm:w-72 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50"
+              {/* Wallet Section - Only render after mount to prevent hydration mismatch */}
+              {isMounted && (
+                <>
+                  {isConnected && address ? (
+                    <div className="relative">
+                      <motion.button
+                        onClick={() =>
+                          setIsWalletDropdownOpen(!isWalletDropdownOpen)
+                        }
+                        className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <div className="py-2">
-                          {/* Full Address Display */}
-                          <div className="px-4 py-3 border-b border-gray-700">
-                            <p className="text-xs text-gray-400 mb-1">
-                              Wallet Address
-                            </p>
-                            <p className="text-xs sm:text-sm text-white break-all font-mono">
-                              {address}
-                            </p>
-                          </div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="font-sm hidden sm:inline">
+                          {formatAddress(address, "medium")}
+                        </span>
+                        <span className="font-sm sm:hidden">
+                          {formatAddress(address, "short")}
+                        </span>
+                        <motion.div
+                          animate={{
+                            rotate: isWalletDropdownOpen ? 180 : 0,
+                          }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </motion.div>
+                      </motion.button>
 
-                          <button
-                            onClick={copyAddress}
-                            className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                      {/* Wallet Dropdown Menu */}
+                      <AnimatePresence>
+                        {isWalletDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-2 w-64 sm:w-72 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50"
                           >
-                            <Copy className="w-4 h-4" />
-                            <span>
-                              {copySuccess ? "Copied!" : "Copy Address"}
-                            </span>
-                          </button>
+                            <div className="py-2">
+                              {/* Full Address Display */}
+                              <div className="px-4 py-3 border-b border-gray-700">
+                                <p className="text-xs text-gray-400 mb-1">
+                                  Wallet Address
+                                </p>
+                                <p className="text-xs sm:text-sm text-white break-all font-mono">
+                                  {address}
+                                </p>
+                              </div>
 
-                          <button
-                            onClick={handleDisconnect}
-                            className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors duration-200"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            <span>Disconnect</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <Link
-                  href="/connect"
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-200"
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span className="hidden xs:inline">Connect</span>
-                </Link>
+                              <button
+                                onClick={copyAddress}
+                                className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                              >
+                                <Copy className="w-4 h-4" />
+                                <span>
+                                  {copySuccess ? "Copied!" : "Copy Address"}
+                                </span>
+                              </button>
+
+                              <button
+                                onClick={handleDisconnect}
+                                className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors duration-200"
+                              >
+                                <LogOut className="w-4 h-4" />
+                                <span>Disconnect</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <Link
+                      href="/connect"
+                      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-200"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      <span className="hidden xs:inline">Connect</span>
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -413,7 +425,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 </button>
 
                 {/* Mobile Wallet Info */}
-                {isConnected && address && (
+                {isMounted && isConnected && address && (
                   <div className="mt-4 pt-4 border-t border-gray-800">
                     <div className="px-4 py-3 bg-gray-800/50 rounded-lg border border-gray-700">
                       <div className="flex items-center gap-2 mb-2">
