@@ -1,23 +1,26 @@
 import React from "react";
 import {
   Database,
-  FileText,
-  CheckCircle,
+  ShoppingBag,
   TrendingUp,
+  Sparkles,
   Loader2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface DatasetStatsProps {
   totalDatasets: number;
-  totalValue: string;
+  listedCount: number;
   avgQuality: string;
+  totalValue: string;
   isLoading?: boolean;
 }
 
 export default function DatasetStats({
   totalDatasets,
-  totalValue,
+  listedCount,
   avgQuality,
+  totalValue,
   isLoading = false,
 }: DatasetStatsProps) {
   const stats = [
@@ -25,47 +28,67 @@ export default function DatasetStats({
       label: "Total Datasets",
       value: totalDatasets.toString(),
       icon: Database,
-      color: "text-pink-600",
+      color: "text-pink-500",
+      bgColor: "bg-pink-500/10",
+      borderColor: "border-pink-500/20",
     },
     {
       label: "Listed for Sale",
-      value: "0", // Will be calculated from blockchain
-      icon: FileText,
-      color: "text-pink-600",
+      value: listedCount.toString(),
+      icon: ShoppingBag,
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/20",
     },
     {
       label: "Avg Quality",
       value: avgQuality,
-      icon: CheckCircle,
-      color: "text-pink-600",
+      icon: Sparkles,
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/20",
     },
     {
       label: "Total Value",
-      value: `${totalValue} DEV`,
+      value: `${totalValue} WND`,
       icon: TrendingUp,
-      color: "text-pink-600",
+      color: "text-green-500",
+      bgColor: "bg-green-500/10",
+      borderColor: "border-green-500/20",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {stats.map((stat, index) => (
-        <div
+        <motion.div
           key={index}
-          className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-pink-500/20 hover:border-pink-500/40 transition-all"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className={`bg-black/60 backdrop-blur-sm rounded-xl p-6 border ${stat.borderColor} hover:border-pink-500/40 transition-all group cursor-pointer hover:shadow-lg hover:shadow-pink-500/10`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white/70 text-sm mb-1">{stat.label}</p>
+              <p className="text-white/70 text-sm mb-2">{stat.label}</p>
               {isLoading ? (
-                <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
+                  <span className="text-sm text-gray-400">Loading...</span>
+                </div>
               ) : (
-                <p className="text-3xl font-bold text-white">{stat.value}</p>
+                <p className="text-3xl font-bold text-white group-hover:text-pink-500 transition-colors">
+                  {stat.value}
+                </p>
               )}
             </div>
-            <stat.icon className={`w-8 h-8 ${stat.color}`} />
+            <div
+              className={`p-3 ${stat.bgColor} rounded-xl group-hover:scale-110 transition-transform`}
+            >
+              <stat.icon className={`w-8 h-8 ${stat.color}`} />
+            </div>
           </div>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
