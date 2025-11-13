@@ -13,7 +13,7 @@ import { CreateDatasetDto } from './dto/create-dataset.dto';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { UploadQueueService } from '../crust/queue/upload-queue.service';
 import { CrustService } from '../crust/crust.service';
-import { VerificationService } from '../encryption/verification.service';
+import { VerificationService } from '../verification/verification.service';
 import { VerifyResultDto } from '../encryption/dto/verified-file.dto';
 
 @Controller('datasets')

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Upload,
-  Loader2,
   CheckCircle,
   AlertCircle,
   Brain,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useMintDataset } from "@/lib/contracts/useDataset";
+import { useWallet } from "@/hooks/useWallet";
 
 interface MintDatasetModalProps {
   isOpen: boolean;
@@ -56,7 +56,9 @@ export default function MintDatasetModal({
   });
   const [error, setError] = useState<string | null>(null);
 
-  const { mint, isPending, isSuccess } = useMintDataset();
+  const { address } = useWallet();
+
+  const { mint } = useMintDataset();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,52 +96,72 @@ export default function MintDatasetModal({
     }));
   };
 
-  const handleStartProcess = async () => {
-    if (
-      !formData.name ||
-      !formData.description ||
-      !formData.file ||
-      formData.categories.length === 0
-    ) {
-      setError(
-        "Please fill all fields, upload a file, and select at least one category"
-      );
-      toast.error("Please complete all required fields");
-      return;
+const handleStartProcess = async () => {
+  if (
+    !formData.name ||
+    !formData.description ||
+    !formData.file ||
+    formData.categories.length === 0
+  ) {
+    setError("Please fill all fields, upload a file, and select at least one category");
+    toast.error("Please complete all required fields");
+    return;
+  }
+
+  setError(null);
+  setFormStep("processing");
+
+  try {
+    toast.loading("Uploading and verifying dataset...", { id: "minting" });
+
+    const form = new FormData();
+    form.append("name", formData.name);
+    form.append("description", formData.description);
+    form.append("categories", JSON.stringify(formData.categories));
+    form.append("file", formData.file);
+    form.append("owner", address || "");
+    const response = await fetch(`http://localhost:5000/datasets/upload`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Upload failed: ${errText}`);
     }
 
-    setError(null);
-    setFormStep("processing");
-
-    try {
-      // TODO: Backend integration
-      // 1. Upload file to backend for AI verification
-      // 2. Encrypt the file
-      // 3. Upload to IPFS
-      // 4. Get IPFS CID
-      // 5. Mint NFT with the CID
-
-      // Placeholder: Simulate minting with a fake CID
-      const placeholderCID = "QmPlaceholder" + Date.now();
-
-      toast.loading("Minting your dataset NFT...", { id: "minting" });
-
-      await mint(placeholderCID);
-
-      toast.success("Dataset NFT minted successfully!", { id: "minting" });
-      setFormStep("success");
-
-      setTimeout(() => {
-        handleClose();
-        onSuccess();
-      }, 3000);
-    } catch (err: any) {
-      console.error("Mint error:", err);
-      setError(err.message || "Minting failed");
-      toast.error("Failed to mint dataset NFT");
-      setFormStep("details");
+    const data = await response.json();
+    const { cid } = data;
+    if (!cid) {
+      throw new Error("No CID returned from server");
     }
-  };
+
+    toast.loading("Minting your dataset NFT...", { id: "minting" });
+
+    await mint(cid);
+
+    toast.success("Dataset NFT minted successfully!", { id: "minting" });
+    setFormStep("success");
+
+    setTimeout(() => {
+      handleClose();
+      onSuccess();
+    }, 3000);
+  } catch (err: unknown) {
+    console.error("Mint error:", err);
+    let errorMessage = "Minting failed";
+    if (err instanceof Error) errorMessage = err.message;
+    else if (typeof err === "string") errorMessage = err;
+    else {
+      try {
+        errorMessage = JSON.stringify(err) || errorMessage;
+      } catch {}
+    }
+    setError(errorMessage);
+    toast.error("Failed to mint dataset NFT");
+    setFormStep("details");
+  }
+};
 
   const handleClose = () => {
     if (formStep === "details" || formStep === "success") {
@@ -239,7 +261,7 @@ export default function MintDatasetModal({
                 >
                   {/* Dataset Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <label className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                       <FileText className="w-4 h-4 text-pink-500" />
                       Dataset Name *
                     </label>
@@ -276,7 +298,7 @@ export default function MintDatasetModal({
 
                   {/* Categories */}
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <label className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                       <Tags className="w-4 h-4 text-pink-500" />
                       Categories * (Select all that apply)
                     </label>
@@ -319,7 +341,7 @@ export default function MintDatasetModal({
 
                   {/* File Upload */}
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <label className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                       <Upload className="w-4 h-4 text-pink-500" />
                       Upload Dataset File *
                     </label>
