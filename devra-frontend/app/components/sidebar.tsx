@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import "@fontsource/quantico/700.css";
 import {
@@ -15,6 +14,8 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAccount, useDisconnect } from "wagmi";
+import { useRouter as useNextRouter } from "next/navigation";
 
 const DoubleLineIcon = ({ size = 30, className = "" }) => (
   <svg
@@ -29,31 +30,43 @@ const DoubleLineIcon = ({ size = 30, className = "" }) => (
   </svg>
 );
 
-const WALLET_ADDRESS_KEY = "walletAddress";
-
 interface NavProps {
   activeTab?: string;
 }
 
 const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
-  const router = useRouter();
+  const router = useNextRouter();
+
+  // Wagmi hooks
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+
+  // UI state
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Wait for client-side hydration
   useEffect(() => {
-    // Close mobile menu when route changes
-    setIsMobileMenuOpen(false);
-    const savedAddress = localStorage.getItem(WALLET_ADDRESS_KEY);
-    console.log(savedAddress);
+    setIsMounted(true);
+  }, []);
 
-    if (savedAddress) {
-      setWalletAddress(savedAddress);
-    } else {
-      setWalletAddress(null);
-      router.push("/connect");
+  // Redirect to connect page if not connected
+  useEffect(() => {
+    if (!isConnected && typeof window !== "undefined") {
+      const publicPages = ["/", "/connect"];
+      const currentPath = window.location.pathname;
+
+      if (!publicPages.includes(currentPath)) {
+        router.push("/connect");
+      }
     }
+  }, [isConnected, router]);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
   }, [router]);
 
   // Prevent body scroll when mobile menu is open
@@ -69,9 +82,9 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
   }, [isMobileMenuOpen]);
 
   const copyAddress = async () => {
-    if (walletAddress) {
+    if (address) {
       try {
-        await navigator.clipboard.writeText(walletAddress);
+        await navigator.clipboard.writeText(address);
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
       } catch (err) {
@@ -81,23 +94,22 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
   };
 
   const handleDisconnect = () => {
-    setWalletAddress(null);
+    disconnect();
     setIsWalletDropdownOpen(false);
     setIsMobileMenuOpen(false);
-    localStorage.removeItem(WALLET_ADDRESS_KEY);
     router.push("/");
   };
 
   const formatAddress = (
-    address: string,
+    addr: string,
     length: "short" | "medium" | "long" = "medium"
   ) => {
     if (length === "short") {
-      return `${address.slice(0, 4)}...${address.slice(-2)}`;
+      return `${addr.slice(0, 4)}...${addr.slice(-2)}`;
     } else if (length === "medium") {
-      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
     }
-    return address;
+    return addr;
   };
 
   const isActive = (path: string) => {
@@ -152,7 +164,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
               <Link href="/" className="flex items-center">
                 <h1
                   style={{ fontFamily: "quantico, sans-serif" }}
-                  className="text-xl sm:text-2xl font-bold text-white hover:text-pink-400 transition-colors duration-200"
+                  className="text-xl sm:text-2xl font-bold text-white hover:text-pink-500 transition-colors duration-200"
                 >
                   Devra
                 </h1>
@@ -165,15 +177,15 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 href="/dashboard"
                 className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 group ${
                   isActive("/dashboard")
-                    ? "bg-pink-500/10 text-pink-400"
+                    ? "bg-pink-500/10 text-pink-500"
                     : "text-gray-300 hover:text-white hover:bg-gray-800/50"
                 }`}
               >
                 <LayoutDashboard
                   className={`w-4 h-4 transition-colors duration-200 ${
                     isActive("/dashboard")
-                      ? "text-pink-400"
-                      : "group-hover:text-pink-400"
+                      ? "text-pink-500"
+                      : "group-hover:text-pink-500"
                   }`}
                 />
                 <span className="text-sm font-medium">Dashboard</span>
@@ -183,15 +195,15 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 href="/datasets"
                 className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 group ${
                   isActive("/datasets")
-                    ? "bg-pink-500/10 text-pink-400"
+                    ? "bg-pink-500/10 text-pink-500"
                     : "text-gray-300 hover:text-white hover:bg-gray-800/50"
                 }`}
               >
                 <Database
                   className={`w-4 h-4 transition-colors duration-200 ${
                     isActive("/datasets")
-                      ? "text-pink-400"
-                      : "group-hover:text-pink-400"
+                      ? "text-pink-500"
+                      : "group-hover:text-pink-500"
                   }`}
                 />
                 <span className="text-sm font-medium">My Datasets</span>
@@ -201,15 +213,15 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 href="/marketplace"
                 className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 group ${
                   isActive("/marketplace")
-                    ? "bg-pink-500/10 text-pink-400"
+                    ? "bg-pink-500/10 text-pink-500"
                     : "text-gray-300 hover:text-white hover:bg-gray-800/50"
                 }`}
               >
                 <Megaphone
                   className={`w-4 h-4 transition-colors duration-200 ${
                     isActive("/marketplace")
-                      ? "text-pink-400"
-                      : "group-hover:text-pink-400"
+                      ? "text-pink-500"
+                      : "group-hover:text-pink-500"
                   }`}
                 />
                 <span className="text-sm font-medium">Marketplace</span>
@@ -218,119 +230,121 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Create Bounty Button - Desktop */}
+              {/* Upload Dataset Button - Desktop */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  window.location.href = "/test-upload";
-                }}
-                className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-600/25"
+                onClick={() => router.push("/test-upload")}
+                className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-500/25"
               >
                 <Plus className="w-4 h-4" />
                 <span>Upload Dataset</span>
               </motion.button>
 
-              {/* Create Bounty Button - Tablet */}
+              {/* Upload Dataset Button - Tablet */}
               <motion.button
-                onClick={() => {
-                  window.location.href = "/datasets";
-                }}
+                onClick={() => router.push("/test-upload")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="hidden cursor-pointer md:flex lg:hidden items-center gap-1 px-3 py-2 bg-pink-500/90 hover:bg-pink-600 text-white rounded-full font-medium text-sm transition-all duration-200"
+                className="hidden cursor-pointer md:flex lg:hidden items-center gap-1 px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-medium text-sm transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
                 <span>Upload</span>
               </motion.button>
 
-              {/* Create Bounty Button - Mobile */}
+              {/* Upload Dataset Button - Mobile */}
               <motion.button
-                onClick={() => {
-                  window.location.href = "/datasets";
-                }}
+                onClick={() => router.push("/test-upload")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="md:hidden px-3 py-2 bg-pink-500/90 hover:bg-pink-600 cursor-pointer text-white rounded-full transition-all duration-200"
+                className="md:hidden px-3 py-2 bg-pink-500 hover:bg-pink-600 cursor-pointer text-white rounded-full transition-all duration-200"
               >
                 <Plus className="w-5 h-5" />
               </motion.button>
 
-              {/* Wallet Section */}
-              {walletAddress ? (
-                <div className="relative">
-                  <motion.button
-                    onClick={() =>
-                      setIsWalletDropdownOpen(!isWalletDropdownOpen)
-                    }
-                    className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="font-sm hidden sm:inline">
-                      {formatAddress(walletAddress, "medium")}
-                    </span>
-                    <span className="font-sm sm:hidden">
-                      {formatAddress(walletAddress, "short")}
-                    </span>
-                    <motion.div
-                      animate={{ rotate: isWalletDropdownOpen ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </motion.div>
-                  </motion.button>
-
-                  {/* Wallet Dropdown Menu */}
-                  <AnimatePresence>
-                    {isWalletDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-64 sm:w-72 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50"
+              {/* Wallet Section - Only render after mount to prevent hydration mismatch */}
+              {isMounted && (
+                <>
+                  {isConnected && address ? (
+                    <div className="relative">
+                      <motion.button
+                        onClick={() =>
+                          setIsWalletDropdownOpen(!isWalletDropdownOpen)
+                        }
+                        className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <div className="py-2">
-                          {/* Full Address Display */}
-                          <div className="px-4 py-3 border-b border-gray-700">
-                            <p className="text-xs text-gray-400 mb-1">
-                              Wallet Address
-                            </p>
-                            <p className="text-md sm:text-sm text-white break-all">
-                              {walletAddress}
-                            </p>
-                          </div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="font-sm hidden sm:inline">
+                          {formatAddress(address, "medium")}
+                        </span>
+                        <span className="font-sm sm:hidden">
+                          {formatAddress(address, "short")}
+                        </span>
+                        <motion.div
+                          animate={{
+                            rotate: isWalletDropdownOpen ? 180 : 0,
+                          }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </motion.div>
+                      </motion.button>
 
-                          <button
-                            onClick={copyAddress}
-                            className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                      {/* Wallet Dropdown Menu */}
+                      <AnimatePresence>
+                        {isWalletDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-2 w-64 sm:w-72 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50"
                           >
-                            <Copy className="w-4 h-4" />
-                            {copySuccess ? "Copied!" : "Copy Address"}
-                          </button>
+                            <div className="py-2">
+                              {/* Full Address Display */}
+                              <div className="px-4 py-3 border-b border-gray-700">
+                                <p className="text-xs text-gray-400 mb-1">
+                                  Wallet Address
+                                </p>
+                                <p className="text-xs sm:text-sm text-white break-all font-mono">
+                                  {address}
+                                </p>
+                              </div>
 
-                          <button
-                            onClick={handleDisconnect}
-                            className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors duration-200"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            Disconnect
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <Link
-                  href="/connect"
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-200"
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span className="hidden xs:inline">Connect</span>
-                </Link>
+                              <button
+                                onClick={copyAddress}
+                                className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                              >
+                                <Copy className="w-4 h-4" />
+                                <span>
+                                  {copySuccess ? "Copied!" : "Copy Address"}
+                                </span>
+                              </button>
+
+                              <button
+                                onClick={handleDisconnect}
+                                className="flex items-center cursor-pointer gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors duration-200"
+                              >
+                                <LogOut className="w-4 h-4" />
+                                <span>Disconnect</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <Link
+                      href="/connect"
+                      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-200"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      <span className="hidden xs:inline">Connect</span>
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -365,7 +379,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive("/dashboard")
-                      ? "bg-pink-500/10 text-pink-400"
+                      ? "bg-pink-500/10 text-pink-500"
                       : "text-gray-300 hover:text-white hover:bg-gray-800"
                   }`}
                 >
@@ -378,7 +392,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive("/datasets")
-                      ? "bg-pink-500/10 text-pink-400"
+                      ? "bg-pink-500/10 text-pink-500"
                       : "text-gray-300 hover:text-white hover:bg-gray-800"
                   }`}
                 >
@@ -391,7 +405,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive("/marketplace")
-                      ? "bg-pink-500/10 text-pink-400"
+                      ? "bg-pink-500/10 text-pink-500"
                       : "text-gray-300 hover:text-white hover:bg-gray-800"
                   }`}
                 >
@@ -401,23 +415,27 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
 
                 <button
                   onClick={() => {
-                    window.location.href = "/datasets";
+                    setIsMobileMenuOpen(false);
+                    router.push("/test-upload");
                   }}
-                  className="flex items-center gap-3 w-full px-4 py-3 bg-pink-500 text-white cursor-pointer hover:bg-black rounded-full transition-all duration-200"
+                  className="flex items-center gap-3 w-full px-4 py-3 bg-pink-500 text-white cursor-pointer hover:bg-pink-600 rounded-full transition-all duration-200"
                 >
                   <Plus className="w-5 h-5" />
                   <span className="font-medium">Upload Dataset</span>
                 </button>
 
                 {/* Mobile Wallet Info */}
-                {walletAddress && (
+                {isMounted && isConnected && address && (
                   <div className="mt-4 pt-4 border-t border-gray-800">
                     <div className="px-4 py-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                      <p className="text-xs text-gray-400 mb-2">
-                        Connected Wallet
-                      </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <p className="text-xs text-gray-400">
+                          Connected Wallet
+                        </p>
+                      </div>
                       <p className="text-sm text-white font-mono break-all">
-                        {walletAddress}
+                        {address}
                       </p>
                       <div className="flex gap-2 mt-3">
                         <button
