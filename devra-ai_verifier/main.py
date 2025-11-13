@@ -337,7 +337,7 @@ def score_image_data(images: List[bytes]) -> dict:
 async def verify_dataset(
     file: UploadFile = File(...),
     name: str = Form(None),
-    description: str = Form(None),  # ← Now used!
+    description: str = Form(None), 
 ):
     raw_bytes = await file.read()
     if not raw_bytes:
