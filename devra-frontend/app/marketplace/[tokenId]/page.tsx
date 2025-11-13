@@ -205,7 +205,7 @@ export default function DatasetDetailPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={() => router.push("/marketplace")}
-            className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors group"
+            className="flex items-center cursor-pointer gap-2 text-gray-400 hover:text-white mb-8 transition-colors group"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
             Back to Marketplace
@@ -494,7 +494,7 @@ export default function DatasetDetailPage() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handlePurchase}
                     disabled={isBuying || !isConnected}
-                    className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-pink-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 cursor-pointer bg-pink-500 hover:bg-pink-600 text-white rounded-full font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-pink-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isBuying ? (
                       <>
@@ -517,7 +517,7 @@ export default function DatasetDetailPage() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleDownload}
                     disabled={isDownloading}
-                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-green-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full cursor-pointer py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-full font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-green-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isDownloading ? (
                       <>

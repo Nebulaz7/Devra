@@ -262,7 +262,7 @@ const Connect = () => {
           layout
         >
           <Wallet className="inline mb-0" size={20} />
-          Switch to Passet Hub
+          Switch to Westend Asset Hub
           <motion.span
             className="text-lg font-extralight"
             variants={{
