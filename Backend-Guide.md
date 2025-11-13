@@ -1,699 +1,545 @@
-# 🚀 Devra Backend Integration Guide
+# 📋 Frontend & Blockchain Implementation Guide for Backend Team
 
-Complete guide for integrating the Devra backend with the frontend and smart contract.
-
----
-
-## 📋 Table of Contents
-
-1. [Backend Overview](#backend-overview)
-2. [Environment Setup](#environment-setup)
-3. [Backend Architecture](#backend-architecture)
-4. [API Endpoints](#api-endpoints)
-5. [Frontend Integration](#frontend-integration)
-6. [Smart Contract Integration](#smart-contract-integration)
-7. [Deployment Guide](#deployment-guide)
+**Prepared by:** @Nebulaz7  
+**Date:** 2025-11-12  
+**Purpose:** Backend integration reference for Devra dataset marketplace
 
 ---
 
-## 🎯 Backend Overview
+## 🎯 Overview
 
-The Devra backend is built with **NestJS** and provides:
-
-- ✅ **Dataset Upload & Encryption** (AES-256-CBC)
-- ✅ **IPFS Storage** via Crust Network
-- ✅ **AI Validation** integration
-- ✅ **Deduplication** via SHA-256 hashing
-- ✅ **Metadata Management**
-- ✅ **Dataset Decryption** for verified owners
+This document outlines how the frontend and smart contract are implemented, so the backend team can integrate correctly with both systems.
 
 ---
 
-## 🔧 Environment Setup
+## 🔗 Smart Contract Details
 
-### **1. Prerequisites**
+### **Deployed Contract Information**
 
-```bash
-# Required versions
-Node.js >= 18.x
-npm >= 9.x
-PostgreSQL >= 14.x (or your preferred DB)
+```
+Contract Name: DatasetNFT (Devra)
+Network: Westend Asset Hub (Testnet)
+Chain ID: 420420421
+Contract Address: 0x25e485Fc5492Ce1c65cFd438De6D64eB62335CD7
+Token Symbol: DVR
+Token Standard: ERC-721
+Explorer: https://blockscout-asset-hub.parity-chains-scw.parity.io
+RPC URL: https://westend-asset-hub-eth-rpc.polkadot.io
+Currency: WND (12 decimals)
 ```
 
-### **2. Clone & Install**
+### **Contract ABI Location**
 
-```bash
-# Clone the repository
-git clone https://github.com/cridiv/Devra.git
-cd Devra/devra-backend
-
-# Install dependencies
-npm install
-
-# Install additional required packages
-npm install @nestjs/platform-express axios crypto multer dotenv
-npm install @prisma/client prisma
-npm install class-validator class-transformer
-npm install @nestjs/config
+```
+Repository: https://github.com/cridiv/Devra
+File: devra-frontend/lib/contracts/DatasetNFT.ts
+Export: DatasetNFTAbi
 ```
 
-### **3. Environment Variables**
+---
 
-Create a `.env` file in `devra-backend/`:
+## 📊 Smart Contract Data Structure
+
+### **On-Chain Dataset Struct**
+
+```solidity
+struct Data {
+    bytes32 cid;        // IPFS CID hash (NOT the full CID!)
+    uint8 score;        // AI quality score (0-100)
+    uint96 price;       // Listing price in WND wei
+    address creator;    // Original creator address
+    bool listed;        // Is listed for sale
+}
+```
+
+### **What Gets Stored On-Chain**
+
+| Field     | Type      | Description                              | Source                |
+| --------- | --------- | ---------------------------------------- | --------------------- |
+| `cid`     | `bytes32` | **Keccak256 hash** of encrypted IPFS CID | Backend calculates    |
+| `score`   | `uint8`   | AI quality score (0-100)                 | Backend AI validation |
+| `price`   | `uint96`  | Price in wei (if listed)                 | User input            |
+| `creator` | `address` | Wallet address                           | Frontend provides     |
+| `listed`  | `bool`    | Marketplace status                       | User action           |
+
+---
+
+## 🔑 Important: CID Storage
+
+### **What Frontend Sends to Contract**
+
+```typescript
+// Frontend calls:
+await mint(fullCid: string)
+
+// Example:
+await mint("QmX7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T")
+```
+
+### **What Contract Stores**
+
+```solidity
+// Contract hashes it:
+bytes32 cidHash = keccak256(bytes(fullCid))
+
+// Stores only the 32-byte hash, NOT the full CID
+data[tokenId].cid = cidHash
+```
+
+### **⚠️ Critical: Backend Must Store the Full CID**
+
+```
+❌ DO NOT store only the hash
+✅ MUST store the full IPFS CID string in your database
+
+Why?
+- Contract only stores the hash for gas efficiency
+- Full CID needed to download from IPFS
+- Backend is responsible for CID → hash mapping
+```
+
+---
+
+## 🔐 Encryption & Security Flow
+
+### **What Backend Must Handle**
+
+1. **Upload Phase:**
+
+   ```
+   User uploads file
+   ↓
+   Backend encrypts with AES-256
+   ↓
+   Backend uploads encrypted file to IPFS
+   ↓
+   Backend gets encrypted IPFS CID
+   ↓
+   Backend stores: { fullCid, encryptionKey, encryptionIv }
+   ↓
+   Backend sends fullCid to frontend
+   ↓
+   Frontend sends fullCid to smart contract
+   ↓
+   Contract hashes and stores keccak256(fullCid)
+   ```
+
+2. **Download Phase:**
+   ```
+   User clicks download
+   ↓
+   Frontend verifies ownership (contract.ownerOf())
+   ↓
+   Frontend requests decryption from backend
+   ↓
+   Backend verifies ownership again
+   ↓
+   Backend retrieves encryptionKey & encryptionIv
+   ↓
+   Backend decrypts and returns real IPFS CID
+   ↓
+   Frontend opens IPFS download link
+   ```
+
+---
+
+## 📡 Smart Contract Functions
+
+### **Functions Backend Will Interact With**
+
+#### **1. Read Functions (No Gas)**
+
+```typescript
+// Get dataset info
+function data(uint256 tokenId) view returns (
+    bytes32 cid,
+    uint8 score,
+    uint96 price,
+    address creator,
+    bool listed
+)
+
+// Get NFT owner
+function ownerOf(uint256 tokenId) view returns (address)
+
+// Get total supply
+function total() view returns (uint256)
+
+// Get token name/symbol
+function name() view returns (string)
+function symbol() view returns (string)
+```
+
+#### **2. Write Functions (Requires Gas - Owner Only)**
+
+```solidity
+// Set AI score (ONLY contract owner can call)
+function setScore(uint256 tokenId, uint8 score) external
+
+// Contract owner address
+function owner() view returns (address)
+```
+
+### **⚠️ Backend Must Call `setScore()` After AI Validation**
+
+```typescript
+// After AI validates dataset, backend must:
+
+1. Get AI score (0-100)
+2. Call contract.setScore(tokenId, aiScore)
+3. This requires:
+   - Backend wallet with WND tokens for gas
+   - Private key stored securely in .env
+   - Contract owner address = deployer address
+```
+
+**Current Contract Owner:**
+
+```
+Deployer: 0x88f713A8d2BF0CFD51f84F3E1cbcef04493547fe
+This wallet controls setScore()
+```
+
+---
+
+## 🎨 Frontend Integration Points
+
+### **1. Mint Flow (Frontend → Backend → Contract)**
+
+```typescript
+// Frontend sends to backend:
+POST /api/datasets/upload
+{
+  file: File,
+  name: string,
+  description: string,
+  categories: string[],
+  walletAddress: string
+}
+
+// Backend processes and returns:
+{
+  cid: string,              // Full encrypted IPFS CID
+  hash: string,             // SHA-256 for deduplication
+  encryptionKey: string,    // AES key (base64)
+  encryptionIv: string,     // AES IV (base64)
+  aiScore: number,          // 0-100
+  filename: string,
+  size: number
+}
+
+// Frontend then calls contract:
+await contract.mint(cid)  // Full CID string
+
+// Contract stores keccak256(cid) on-chain
+// Backend must store full CID + encryption keys
+```
+
+### **2. Download Flow (Frontend → Backend)**
+
+```typescript
+// Frontend requests:
+POST /api/datasets/decrypt
+{
+  tokenId: number,
+  walletAddress: string
+}
+
+// Backend verifies ownership via contract:
+const owner = await contract.ownerOf(tokenId)
+if (owner !== walletAddress) throw "Not owner"
+
+// Backend returns:
+{
+  decryptedCid: string,     // Real IPFS CID
+  downloadUrl: string       // IPFS gateway URL
+}
+```
+
+---
+
+## 🗄️ Backend Database Schema Requirements
+
+### **Minimum Required Fields**
+
+```typescript
+Dataset {
+  id: number                  // Auto increment
+  tokenId: number | null      // NFT token ID (set after minting)
+  filename: string            // Original filename
+  fullCid: string             // ⚠️ CRITICAL: Full IPFS CID
+  cidHash: string             // keccak256 hash (for verification)
+  encryptionKey: string       // AES-256 key (base64)
+  encryptionIv: string        // AES-256 IV (base64)
+  fileHash: string            // SHA-256 (deduplication)
+  size: number                // File size in bytes
+  uploader: string            // Wallet address
+  aiScore: number | null      // AI quality score (0-100)
+  categories: string[]        // ["Medicine", "AI", ...]
+  name: string                // Dataset name
+  description: string         // Dataset description
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+```
+
+### **⚠️ Security Notes**
+
+```
+✅ Store encryption keys in secure database
+✅ Never expose encryption keys in API responses
+✅ Never store decrypted CIDs on-chain
+✅ Always verify ownership before decryption
+❌ Never return encryption keys to frontend
+```
+
+---
+
+## 🔄 Complete Integration Sequence
+
+### **Phase 1: User Uploads Dataset**
+
+```
+1. User fills form in frontend (name, description, categories, file)
+2. Frontend → Backend: POST /api/datasets/upload
+3. Backend:
+   a. Validates file
+   b. Calculates SHA-256 hash (deduplication)
+   c. Encrypts file with AES-256
+   d. Uploads encrypted file to IPFS
+   e. Gets encrypted CID
+   f. Sends to AI validation API
+   g. Gets AI score
+   h. Stores in database: {fullCid, encryptionKey, encryptionIv, fileHash, aiScore}
+   i. Returns to frontend: {cid, aiScore, ...}
+4. Frontend calls: contract.mint(fullCid)
+5. Contract:
+   a. Hashes CID: cidHash = keccak256(fullCid)
+   b. Stores: data[tokenId] = {cidHash, score: 0, ...}
+   c. Emits: Minted(tokenId, owner, cidHash, fullCid)
+6. Frontend gets tokenId from event
+7. Frontend → Backend: POST /api/store-token-id {tokenId, fullCid}
+8. Backend updates database: Dataset.tokenId = tokenId
+```
+
+### **Phase 2: Backend Sets AI Score**
+
+```
+1. Backend listens to Minted events OR polls for new datasets
+2. For new dataset:
+   a. Get tokenId and aiScore from database
+   b. Call contract.setScore(tokenId, aiScore)
+   c. Sign transaction with backend wallet
+   d. Wait for confirmation
+```
+
+### **Phase 3: User Downloads Dataset**
+
+```
+1. User purchases NFT (contract automatically transfers)
+2. User clicks "Download Dataset" button
+3. Frontend verifies ownership locally
+4. Frontend → Backend: POST /api/datasets/decrypt {tokenId, walletAddress}
+5. Backend:
+   a. Calls contract.ownerOf(tokenId)
+   b. Verifies walletAddress === owner
+   c. Retrieves from database: {encryptionKey, encryptionIv, fullCid}
+   d. Decrypts fullCid OR returns IPFS URL
+   e. Returns: {downloadUrl}
+6. Frontend opens IPFS gateway URL
+7. User downloads decrypted file
+```
+
+---
+
+## 🔌 Contract Event Emissions
+
+### **Events Backend Should Listen To**
+
+```solidity
+event Minted(
+    uint256 indexed id,
+    address indexed owner,
+    bytes32 cidHash,
+    string fullCid          // Full CID emitted in event!
+)
+
+event Listed(
+    uint256 indexed id,
+    uint256 price
+)
+
+event Sold(
+    uint256 indexed id,
+    address indexed buyer,
+    uint256 price
+)
+
+event Unlisted(
+    uint256 indexed id
+)
+
+event Transfer(
+    address indexed from,
+    address indexed to,
+    uint256 indexed id
+)
+```
+
+### **Why Backend Should Index Events**
+
+```
+✅ Track all minted datasets
+✅ Sync tokenId with database
+✅ Monitor purchases for analytics
+✅ Update AI scores after minting
+✅ Track ownership changes
+```
+
+---
+
+## 🛠️ Backend Wallet Configuration
+
+### **Required for `setScore()` Calls**
 
 ```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/devra?schema=public"
+# Backend needs its own wallet
+BACKEND_WALLET_PRIVATE_KEY="0x..."
+BACKEND_WALLET_ADDRESS="0x..."
 
-# Crust IPFS Configuration
-CRUST_AUTH_HEADER="your-crust-auth-header"
-CRUST_IPFS_GATEWAY="https://gw.crustfiles.app"
-CRUST_PIN_ENDPOINT="https://pin.crustcode.com/psa"
+# Must match contract owner
+CONTRACT_OWNER_ADDRESS="0x88f713A8d2BF0CFD51f84F3E1cbcef04493547fe"
 
-# AI Validation API
-AI_API_URL="http://localhost:8000"
-AI_API_KEY="your-ai-api-key"
-
-# Encryption
-ENCRYPTION_ALGORITHM="aes-256-cbc"
-ENCRYPTION_KEY_LENGTH=32
-
-# Server
-PORT=3001
-NODE_ENV=development
-
-# Frontend URL (for CORS)
-FRONTEND_URL="http://localhost:3000"
-
-# Smart Contract
-WESTEND_RPC_URL="https://westend-asset-hub-eth-rpc.polkadot.io"
-DATASET_NFT_ADDRESS="0x25e485Fc5492Ce1c65cFd438De6D64eB62335CD7"
+# For gas payments
+# Get WND from faucet: https://faucet.polkadot.io/westend?parachain=1000
 ```
 
-### **4. Database Setup**
-
-```bash
-# Initialize Prisma
-npx prisma init
-
-# Create database schema
-npx prisma migrate dev --name init
-
-# Generate Prisma Client
-npx prisma generate
-```
-
----
-
-## 🏗️ Backend Architecture
-
-```
-devra-backend/
-├── src/
-│   ├── dataset/
-│   │   ├── dataset.controller.ts    # Upload, decrypt endpoints
-│   │   ├── dataset.service.ts       # Core dataset logic
-│   │   └── dataset.entity.ts        # Dataset model
-│   ├── encryption/
-│   │   └── encryption.service.ts    # AES-256 encryption
-│   ├── ipfs/
-│   │   └── ipfs.service.ts          # Crust IPFS integration
-│   ├── validation/
-│   │   └── validation.service.ts    # AI validation
-│   ├── deduplication/
-│   │   └── deduplication.service.ts # SHA-256 hashing
-│   └── main.ts
-├── prisma/
-│   └── schema.prisma                # Database schema
-├── tmp/                             # Temporary encrypted files
-├── .env
-└── package.json
-```
-
----
-
-## 📡 API Endpoints
-
-### **1. Upload Dataset**
-
-**Endpoint:** `POST /api/datasets/upload`
-
-**Request:**
+### **Calling setScore() Example**
 
 ```typescript
-// FormData
-{
-  file: File,                    // Dataset file
-  name: string,                  // Dataset name
-  description: string,           // Dataset description
-  categories: string[],          // ["Medicine", "AI", ...]
-  walletAddress: string          // Uploader's wallet
-}
-```
+import { ethers } from "ethers";
 
-**Response:**
+const provider = new ethers.JsonRpcProvider(
+  "https://westend-asset-hub-eth-rpc.polkadot.io"
+);
 
-```json
-{
-  "success": true,
-  "data": {
-    "cid": "QmXYZ...", // IPFS CID (encrypted)
-    "hash": "sha256...", // File hash for deduplication
-    "encryptionKey": "base64...", // AES key (store securely!)
-    "encryptionIv": "base64...", // AES IV
-    "aiScore": 95, // AI quality score
-    "filename": "dataset.zip",
-    "size": 1024000,
-    "timestamp": "2025-11-12T23:50:45Z"
-  }
-}
-```
+const signer = new ethers.Wallet(
+  process.env.BACKEND_WALLET_PRIVATE_KEY,
+  provider
+);
 
-### **2. Verify Dataset Ownership**
+const contract = new ethers.Contract(
+  "0x25e485Fc5492Ce1c65cFd438De6D64eB62335CD7",
+  DatasetNFTAbi,
+  signer
+);
 
-**Endpoint:** `POST /api/datasets/verify-ownership`
-
-**Request:**
-
-```json
-{
-  "tokenId": 1,
-  "walletAddress": "0x..."
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "ownsNFT": true,
-  "owner": "0x..."
-}
-```
-
-### **3. Decrypt Dataset**
-
-**Endpoint:** `POST /api/datasets/decrypt`
-
-**Request:**
-
-```json
-{
-  "tokenId": 1,
-  "walletAddress": "0x..."
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "decryptedCid": "QmABC...", // Real IPFS CID (decrypted)
-  "downloadUrl": "https://ipfs.io/ipfs/QmABC..."
-}
-```
-
-### **4. Get AI Score**
-
-**Endpoint:** `POST /api/datasets/validate`
-
-**Request:**
-
-```json
-{
-  "cid": "QmXYZ...",
-  "decryptionKey": "base64...",
-  "decryptionIv": "base64..."
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "score": 95,
-  "category": "Medicine",
-  "quality": "High",
-  "details": {
-    "dataIntegrity": true,
-    "completeness": 98,
-    "format": "valid"
-  }
-}
+// Set AI score for token #1
+const tx = await contract.setScore(1, 95);
+await tx.wait();
 ```
 
 ---
 
-## 🎨 Frontend Integration
+## 📊 API Response Format Expected by Frontend
 
-### **1. Create API Client**
+### **Upload Response**
 
-````typescript name=devra-frontend/lib/api/datasets.ts
 ```typescript
-import axios from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
-export interface UploadDatasetRequest {
-  file: File;
-  name: string;
-  description: string;
-  categories: string[];
-  walletAddress: string;
-}
-
-export interface UploadDatasetResponse {
-  success: boolean;
+{
+  success: true,
   data: {
-    cid: string;
-    hash: string;
-    encryptionKey: string;
-    encryptionIv: string;
-    aiScore: number;
-    filename: string;
-    size: number;
-    timestamp: string;
-  };
-}
-
-export interface DecryptDatasetResponse {
-  success: boolean;
-  decryptedCid: string;
-  downloadUrl: string;
-}
-
-// Upload dataset to backend
-export async function uploadDataset(
-  data: UploadDatasetRequest
-): Promise<UploadDatasetResponse> {
-  const formData = new FormData();
-  formData.append('file', data.file);
-  formData.append('name', data.name);
-  formData.append('description', data.description);
-  formData.append('categories', JSON.stringify(data.categories));
-  formData.append('walletAddress', data.walletAddress);
-
-  const response = await axios.post(
-    `${API_BASE_URL}/datasets/upload`,
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-
-  return response.data;
-}
-
-// Verify ownership
-export async function verifyOwnership(
-  tokenId: number,
-  walletAddress: string
-): Promise<{ success: boolean; ownsNFT: boolean }> {
-  const response = await axios.post(`${API_BASE_URL}/datasets/verify-ownership`, {
-    tokenId,
-    walletAddress,
-  });
-
-  return response.data;
-}
-
-// Decrypt dataset (owner only)
-export async function decryptDataset(
-  tokenId: number,
-  walletAddress: string
-): Promise<DecryptDatasetResponse> {
-  const response = await axios.post(`${API_BASE_URL}/datasets/decrypt`, {
-    tokenId,
-    walletAddress,
-  });
-
-  return response.data;
-}
-
-// Get AI validation score
-export async function getAIScore(
-  cid: string,
-  decryptionKey: string,
-  decryptionIv: string
-): Promise<{ success: boolean; score: number }> {
-  const response = await axios.post(`${API_BASE_URL}/datasets/validate`, {
-    cid,
-    decryptionKey,
-    decryptionIv,
-  });
-
-  return response.data;
+    cid: string,              // Full encrypted CID
+    hash: string,             // SHA-256 hash
+    aiScore: number,          // 0-100
+    filename: string,
+    size: number,
+    timestamp: string         // ISO 8601
+  }
 }
 ```
-````
 
-### **2. Update Mint Modal**
+### **Decrypt Response**
 
-````typescript name=devra-frontend/app/datasets/components/MintDatasetModal.tsx
 ```typescript
-// Add to your existing mint modal
-
-import { uploadDataset } from '@/lib/api/datasets';
-import { useMintDataset } from '@/lib/contracts/useDataset';
-
-const handleStartProcess = async () => {
-  if (!formData.file || !formData.name || !formData.description || formData.categories.length === 0) {
-    toast.error("Please complete all fields");
-    return;
-  }
-
-  setFormStep("processing");
-  
-  try {
-    // Step 1: Upload to backend (encrypts + uploads to IPFS)
-    toast.loading("Uploading and encrypting dataset...", { id: "upload" });
-    
-    const uploadResponse = await uploadDataset({
-      file: formData.file,
-      name: formData.name,
-      description: formData.description,
-      categories: formData.categories,
-      walletAddress: address!, // From useAccount()
-    });
-
-    toast.success("Dataset uploaded to IPFS!", { id: "upload" });
-
-    // Step 2: Get AI score
-    setAiScore(uploadResponse.data.aiScore);
-
-    // Step 3: Mint NFT with encrypted CID
-    toast.loading("Minting NFT on blockchain...", { id: "mint" });
-    
-    await mint(uploadResponse.data.cid); // Encrypted CID stored on-chain
-
-    toast.success("NFT minted successfully!", { id: "mint" });
-
-    // Step 4: Store encryption keys in your database (IMPORTANT!)
-    // These keys are needed to decrypt the dataset later
-    await fetch("/api/store-encryption-keys", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tokenId: mintedTokenId, // From mint transaction
-        encryptionKey: uploadResponse.data.encryptionKey,
-        encryptionIv: uploadResponse.data.encryptionIv,
-        walletAddress: address,
-      }),
-    });
-
-    setFormStep("success");
-    onSuccess();
-  } catch (error: any) {
-    console.error("Mint error:", error);
-    toast.error(error.message || "Minting failed");
-    setFormStep("details");
-  }
-};
-```;
-````
-
-### **3. Update Download Functionality**
-
-````typescript name=devra-frontend/app/marketplace/[tokenId]/page.tsx
-```typescript
-import { decryptDataset, verifyOwnership } from '@/lib/api/datasets';
-
-const handleDownload = async () => {
-  if (!tokenId || !address) return;
-
-  setIsDownloading(true);
-  
-  try {
-    // Step 1: Verify ownership
-    toast.loading("Verifying ownership...", { id: "download" });
-    
-    const { ownsNFT } = await verifyOwnership(tokenId, address);
-    
-    if (!ownsNFT) {
-      toast.error("You must own this NFT to download!", { id: "download" });
-      return;
-    }
-
-    // Step 2: Decrypt dataset
-    toast.loading("Decrypting dataset...", { id: "download" });
-    
-    const { decryptedCid, downloadUrl } = await decryptDataset(tokenId, address);
-
-    // Step 3: Open download link
-    window.open(downloadUrl, "_blank");
-    
-    toast.success("Download started!", { id: "download" });
-  } catch (error: any) {
-    console.error("Download error:", error);
-    toast.error(error.message || "Download failed", { id: "download" });
-  } finally {
-    setIsDownloading(false);
-  }
-};
-```;
-````
-
----
-
-## 🔗 Smart Contract Integration
-
-### **1. Update Contract to Store Metadata**
-
-Your contract already stores the CID hash. Now you need to:
-
-1. **Store encrypted CID** (bytes32 hash) on-chain ✅ (Already done)
-2. **Store encryption keys** in your backend database (off-chain)
-3. **Verify ownership** before allowing download
-
-### **2. Backend Ownership Verification**
-
-````typescript name=devra-backend/src/dataset/dataset.service.ts
-```typescript
-import { ethers } from 'ethers';
-
-async verifyOwnership(tokenId: number, walletAddress: string): Promise<boolean> {
-  try {
-    const provider = new ethers.JsonRpcProvider(
-      process.env.WESTEND_RPC_URL
-    );
-
-    const contract = new ethers.Contract(
-      process.env.DATASET_NFT_ADDRESS,
-      [
-        'function ownerOf(uint256 tokenId) view returns (address)',
-      ],
-      provider
-    );
-
-    const owner = await contract.ownerOf(tokenId);
-    
-    return owner.toLowerCase() === walletAddress.toLowerCase();
-  } catch (error) {
-    console.error('Ownership verification error:', error);
-    return false;
-  }
-}
-```;
-````
-
-### **3. Database Schema for Encryption Keys**
-
-````prisma name=devra-backend/prisma/schema.prisma
-```prisma
-model Dataset {
-  id              Int      @id @default(autoincrement())
-  tokenId         Int?     @unique
-  filename        String
-  hash            String   @unique
-  cid             String   // Encrypted CID (stored on IPFS)
-  encryptionKey   String   // AES key (base64)
-  encryptionIv    String   // AES IV (base64)
-  size            Int
-  uploader        String   // Wallet address
-  aiScore         Int?
-  category        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+{
+  success: true,
+  decryptedCid: string,       // Real IPFS CID
+  downloadUrl: string         // https://ipfs.io/ipfs/QmXYZ...
 }
 ```
-````
 
----
+### **Verify Ownership Response**
 
-## 🚀 Complete Integration Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      DEVRA INTEGRATION FLOW                      │
-└─────────────────────────────────────────────────────────────────┘
-
-1. USER UPLOADS DATASET
-   ├─ Frontend: User fills mint form
-   ├─ Frontend: Calls uploadDataset() API
-   └─ Backend: Receives file + metadata
-
-2. BACKEND PROCESSING
-   ├─ Hash file (SHA-256) for deduplication
-   ├─ Check if hash exists in DB
-   ├─ Encrypt file with AES-256-CBC
-   ├─ Upload encrypted file to IPFS (Crust)
-   ├─ Get encrypted CID
-   ├─ Send to AI validation API
-   ├─ Get AI score
-   └─ Return { cid, encryptionKey, encryptionIv, aiScore }
-
-3. FRONTEND MINTING
-   ├─ Receive encrypted CID from backend
-   ├─ Call contract.mint(encryptedCID)
-   ├─ Wait for transaction confirmation
-   ├─ Get tokenId from event
-   └─ Store encryption keys in backend DB
-
-4. PURCHASE & DOWNLOAD
-   ├─ User purchases NFT on marketplace
-   ├─ Contract transfers NFT + payment
-   ├─ User clicks "Download Dataset"
-   ├─ Frontend calls verifyOwnership()
-   ├─ Backend checks contract.ownerOf(tokenId)
-   ├─ If verified, backend decrypts CID
-   ├─ Frontend opens IPFS download link
-   └─ User downloads decrypted dataset
+```typescript
+{
+  success: true,
+  ownsNFT: boolean,
+  owner: string               // Current owner address
+}
 ```
 
 ---
 
-## 📝 Environment Variables Reference
+## 🔒 Security Checklist for Backend
 
-| Variable              | Description           | Example                                         |
-| --------------------- | --------------------- | ----------------------------------------------- |
-| `DATABASE_URL`        | PostgreSQL connection | `postgresql://...`                              |
-| `CRUST_AUTH_HEADER`   | Crust API auth        | `Bearer xxx`                                    |
-| `CRUST_IPFS_GATEWAY`  | IPFS gateway URL      | `https://gw.crustfiles.app`                     |
-| `AI_API_URL`          | AI validation API     | `http://localhost:8000`                         |
-| `FRONTEND_URL`        | Frontend URL (CORS)   | `http://localhost:3000`                         |
-| `WESTEND_RPC_URL`     | Blockchain RPC        | `https://westend-asset-hub-eth-rpc.polkadot.io` |
-| `DATASET_NFT_ADDRESS` | Contract address      | `0x25e485...`                                   |
-
----
-
-## 🧪 Testing the Integration
-
-### **1. Start Backend**
-
-```bash
-cd devra-backend
-npm run start:dev
 ```
-
-### **2. Start Frontend**
-
-```bash
-cd devra-frontend
-npm run dev
-```
-
-### **3. Test Upload Flow**
-
-1. Go to `/datasets`
-2. Click "Upload Dataset"
-3. Fill form and upload file
-4. Wait for:
-   - File upload ✅
-   - Encryption ✅
-   - IPFS storage ✅
-   - AI validation ✅
-   - NFT minting ✅
-
-### **4. Test Download Flow**
-
-1. Go to `/marketplace`
-2. Purchase a dataset NFT
-3. Go to detail page
-4. Click "Download Dataset"
-5. Verify:
-   - Ownership check ✅
-   - Decryption ✅
-   - IPFS download ✅
-
----
-
-## 🔒 Security Considerations
-
-1. ✅ **Encryption keys stored securely** in backend database
-2. ✅ **Only owners can decrypt** datasets
-3. ✅ **Encrypted CID** stored on-chain (not readable)
-4. ✅ **Ownership verification** before decryption
-5. ✅ **Deduplication** prevents spam
-6. ✅ **AI validation** ensures quality
-
----
-
-## 🚀 Deployment
-
-### **Backend (Railway/Render/Heroku)**
-
-```bash
-# 1. Set environment variables
-# 2. Deploy
-railway up
-# or
-git push heroku main
-```
-
-### **Frontend (Vercel)**
-
-```bash
-# 1. Add environment variables
-NEXT_PUBLIC_API_URL=https://your-backend.railway.app/api
-
-# 2. Deploy
-vercel --prod
+✅ Store encryption keys in secure database (not exposed)
+✅ Verify ownership before decryption
+✅ Use HTTPS for all API endpoints
+✅ Validate wallet signatures
+✅ Rate limit API endpoints
+✅ Never return encryption keys to frontend
+✅ Hash passwords/keys using bcrypt
+✅ Use environment variables for secrets
+✅ Implement CORS properly
+✅ Validate file types and sizes
+✅ Sanitize user inputs
+✅ Log all decrypt requests for audit
 ```
 
 ---
 
-## 📚 Additional Resources
+## 🎯 Key Takeaways for Backend Team
 
-- **NestJS Docs:** https://docs.nestjs.com
-- **Crust Network:** https://docs.crust.network
-- **IPFS Docs:** https://docs.ipfs.tech
-- **Prisma Docs:** https://www.prisma.io/docs
+1. **CID Storage:**
 
----
+   - Contract stores `keccak256(fullCid)` (32 bytes)
+   - Backend MUST store full CID string (46-59 characters)
+   - Use CID hash only for verification, not storage
 
-## ❓ Troubleshooting
+2. **AI Score:**
 
-### **Issue: "Cannot connect to backend"**
+   - Backend calculates score (0-100)
+   - Backend calls `contract.setScore(tokenId, score)`
+   - Requires backend wallet with gas
 
-```bash
-# Check backend is running
-curl http://localhost:3001/health
+3. **Encryption:**
 
-# Check CORS settings
-# Add FRONTEND_URL to .env
-```
+   - Backend encrypts datasets with AES-256
+   - Stores encryption keys securely
+   - Only provides decrypted CID to verified owners
 
-### **Issue: "Encryption failed"**
+4. **Ownership:**
 
-```bash
-# Check encryption key length
-# Should be 32 bytes for AES-256
-```
+   - Always verify with `contract.ownerOf(tokenId)`
+   - Never trust frontend ownership claims
+   - Backend is the authority for decryption
 
-### **Issue: "IPFS upload failed"**
-
-```bash
-# Check Crust credentials
-# Verify CRUST_AUTH_HEADER in .env
-```
+5. **Events:**
+   - Listen to `Minted` event to sync tokenId
+   - Full CID is emitted in event for redundancy
+   - Index events for analytics
 
 ---
 
-**Your backend integration is complete!** 🎉
+## 📞 Contact & Resources
 
-This guide covers everything from setup to deployment. Follow the flow and your Devra platform will be fully functional with encrypted dataset management! 🚀
+**Frontend Developer:** @Nebulaz7  
+**Repository:** https://github.com/cridiv/Devra  
+**Contract Explorer:** https://blockscout-asset-hub.parity-chains-scw.parity.io/address/0x25e485Fc5492Ce1c65cFd438De6D64eB62335CD7  
+**Network Faucet:** https://faucet.polkadot.io/westend?parachain=1000
+
+---
+
+**This document provides all necessary information for backend integration with the frontend and smart contract. No code changes needed from frontend side.** ✅
