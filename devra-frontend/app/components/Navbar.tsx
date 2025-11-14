@@ -6,9 +6,9 @@ import {
   X,
   ArrowUpRight,
   Wallet,
-  Feather,
-  LaptopMinimal,
   House,
+  Telescope,
+  UsersRound,
 } from "lucide-react";
 import "@fontsource/quantico/700.css";
 import Link from "next/link";
@@ -41,20 +41,20 @@ const Navbar = () => {
       className="fixed top-0 left-0 right-0 flex bg-[171717]/70 lg:bg-transparent justify-center border-gray-500 m-0 font-sm p-2 bg-primary backdrop-blur-xl z-30 lg:rounded-full lg:mt-5 lg:mx-6 lg:py-2 lg:border-1 lg:shadow-md lg:shadow-pink-500/50"
     >
       <nav className="flex justify-between items-center gap-5 w-full max-w-7xl px-2 md:px-6 h-[3.5rem] mx-auto">
-        <div className="flex gap-0">
+        <div className="flex gap-0 pl-2">
           <Image
-            src="/logo.svg"
-            alt="Dallnk logo"
+            src="/devra-logo.svg"
+            alt="Devra logo"
             content="fit-width"
             className="rounded-full p-0"
-            height={60}
-            width={60}
+            height={30}
+            width={30}
           />
           <h1
             style={{ fontFamily: "quantico, sans-serif" }}
-            className="font-xl text-white inline-block mt-3"
+            className="font-2xl text-white inline-block mt-3"
           >
-            Devra
+            evra
           </h1>
         </div>
 
@@ -72,12 +72,24 @@ const Navbar = () => {
             </MotionLink>
           </li>
           <li>
-            <MotionLink href="/signin" className="hover:text-white" layout>
+            <MotionLink
+              href="/connect"
+              className="hover:text-white transition-transform duration-200"
+              whileHover={{ y: -4 }}
+              layout
+            >
+              <Telescope className="inline-block mr-3 mb-1" size={18} />
               Explore
             </MotionLink>
           </li>
           <li>
-            <MotionLink href="/signin" className="hover:text-white" layout>
+            <MotionLink
+              href="/connect"
+              className="hover:text-white transition-transform duration-200"
+              whileHover={{ y: -4 }}
+              layout
+            >
+              <UsersRound className="inline-block mr-3 mb-1" size={18} />
               Community
             </MotionLink>
           </li>
@@ -87,7 +99,7 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-6">
           <motion.button
             onClick={() => {
-              window.location.href = "/signin";
+              window.location.href = "/connect";
             }}
             className="bg-pink-500 text-[16px] text-white px-4 cursor-pointer py-2 rounded-full flex items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300"
             whileHover="hover"
@@ -97,7 +109,7 @@ const Navbar = () => {
             layout
           >
             <Wallet className="inline mb-0" size={20} />
-            Connect
+            Connect Wallet
             <motion.span
               className="text-lg font-extralight"
               variants={{
@@ -158,40 +170,43 @@ const Navbar = () => {
           <ul className="flex flex-col gap-6 pl-6">
             <li className="gap-0">
               <Link
-                href="/home"
+                href="/dashboard"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl  transition-colors"
               >
                 Home
-                <Feather className="inline-block ml-1" size={24} />
+                <House className="inline-block ml-1" size={24} />
               </Link>
             </li>
             <li>
               <Link
-                href="/home"
+                href="/dashboard"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl transition-colors"
               >
-                Marketplace
-                <ArrowUpRight className="inline-block ml-0.5" size={24} />
+                Explore
+                <Telescope className="inline-block ml-0.5" size={24} />
               </Link>
             </li>
             <li>
               <Link
-                href="/signin"
+                href="/connect"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl  transition-colors"
               >
                 Community
-                <LaptopMinimal className="inline-block ml-0.5" size={24} />
+                <UsersRound className="inline-block ml-0.5" size={24} />
               </Link>
             </li>
             <li></li>
           </ul>
-          {/* Star button for mobile */}
+          {/* Connect button for mobile */}
           <div className="md:hidden ml-2 mb-2 lg:hidden flex items-center gap-6">
             <motion.button
               className="text-white px-4 cursor-pointer py-2 rounded-full flex items-center gap-2 hover:bg-pink-500 bg-[#101010] transition duration-300"
               whileHover="hover"
               variants={{
                 hover: { scale: 1.0 },
+              }}
+              onClick={() => {
+                window.location.href = "/connect";
               }}
               layout
             >
