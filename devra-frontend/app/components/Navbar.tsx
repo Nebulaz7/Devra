@@ -109,7 +109,7 @@ const Navbar = () => {
             layout
           >
             <Wallet className="inline mb-0" size={20} />
-            Connect Wallet
+            Connect App
             <motion.span
               className="text-lg font-extralight"
               variants={{
