@@ -4,9 +4,9 @@ import Image from "next/image";
 
 const Hero = () => {
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-6 px-6 lg:px-16">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-6 px-6 lg:pt-12 lg:px-16">
       {/* Left Section - Header and CTA */}
-      <div className="pl-0 md:pl-18">
+      <div className="pl-0 md:pl-16">
         <h2
           style={{
             fontFamily: "var(--font-space-grotesk), quantico, sans-serif",
@@ -14,7 +14,7 @@ const Hero = () => {
           }}
           className="text-6xl lg:text-7xl font-black leading-[0.9] mb-8"
         >
-          <span className="text-white">CREATE</span>
+          <span className="text-white">UPLOAD</span>
           <br />
           <span
             style={{
@@ -23,10 +23,10 @@ const Hero = () => {
             }}
             className="ml-0 md:ml-16 inline-block"
           >
-            COLLAB
+            VERIFY
           </span>
           <br />
-          <span className="text-pink-500">COLLECT</span>
+          <span className="text-pink-500">TRADE</span>
         </h2>
 
         <p className="text-base text-gray-400 max-w-md leading-relaxed mb-10">
@@ -40,7 +40,8 @@ const Hero = () => {
           <span className="text-[10px] text-gray-500 tracking-widest uppercase">
             Secured by
           </span>
-          <span className="text-gray-500 text-sm font-semibold">
+          <span className="text-gray-500 flex gap-1 text-sm font-semibold">
+            <Image src="polkadot-logo.svg" alt="" width={15} height={15} />
             Polkadot Asset Hub
           </span>
           <div className="w-5 h-px bg-gray-700"></div>

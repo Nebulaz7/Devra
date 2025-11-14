@@ -36,3 +36,15 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #959799;
 }
+
+/* custom text select */
+::selection {
+  background-color: #f6339b6c;
+  color: #fff;
+}
+
+/* For older Firefox versions */
+::-moz-selection {
+  background-color: #f6339b6c;
+  color: #fff;
+}
