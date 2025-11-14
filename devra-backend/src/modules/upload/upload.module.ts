@@ -9,7 +9,7 @@ import { UploadQueueService } from '../crust/queue/upload-queue.service';
 import { CrustService } from '../crust/crust.service';
 import { EncryptionModule } from '../encryption/encrypt.module';
 import { CrustModule } from '../crust/crust.module';
-import { VerificationService } from '../encryption/verification.service';
+import { VerificationService } from '../verification/verification.service';
 
 @Module({
   imports: [EncryptionModule, CrustModule],

@@ -3,7 +3,7 @@ import { EncryptService } from './encrypt.service';
 import { DatasetRecordService } from './dataset-record.service';
 import { CrustService } from '../crust/crust.service';
 import { RsaService } from './rsa/rsa.service';
-import { VerificationService } from './verification.service';
+import { VerificationService } from '../verification/verification.service';
 
 @Module({
   imports: [],

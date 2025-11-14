@@ -337,7 +337,7 @@ def score_image_data(images: List[bytes]) -> dict:
 async def verify_dataset(
     file: UploadFile = File(...),
     name: str = Form(None),
-    description: str = Form(None),  # ← Now used!
+    description: str = Form(None), 
 ):
     raw_bytes = await file.read()
     if not raw_bytes:
@@ -354,6 +354,7 @@ def root():
 
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get('PORT', 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

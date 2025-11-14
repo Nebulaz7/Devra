@@ -30,24 +30,20 @@ const Page = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Make sure these fields match exactly what the CreateDatasetDto expects in the backend
       formData.append("owner", "test-wallet-address");
       formData.append("name", file.name);
       formData.append("description", "Uploaded from test interface");
 
-      // Log what we're sending
       console.log("Sending file with size:", file.size);
       console.log("FormData contains file?", formData.has("file"));
 
       const response = await fetch("http://localhost:5000/datasets/upload", {
         method: "POST",
         body: formData,
-        // Remove explicit headers to let browser handle multipart/form-data correctly
       });
 
       console.log("Response status:", response.status);
 
-      // Try to get response data even if there's an error
       let data;
       try {
         data = await response.json();
