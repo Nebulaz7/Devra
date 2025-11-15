@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useState } from "react";
 import { ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
@@ -169,12 +169,12 @@ export default function TestContractPage() {
                 Test your DatasetNFT smart contract on Westend Asset Hub
               </p>
             </div>
-            <a
+            <Link
               href="/"
               className="text-gray-400 hover:text-white text-sm transition"
             >
               ← Home
-            </a>
+            </Link>
           </div>
 
           {/* Contract Info Card */}
