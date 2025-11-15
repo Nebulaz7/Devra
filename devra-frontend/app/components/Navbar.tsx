@@ -38,7 +38,7 @@ const Navbar = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       viewport={{ once: true }}
-      className="fixed top-0 left-0 right-0 flex bg-[171717]/70 lg:bg-transparent justify-center border-gray-500 m-0 font-sm p-2 bg-primary backdrop-blur-xl z-30 lg:rounded-full lg:mt-5 lg:mx-6 lg:py-2 lg:border-1 lg:shadow-md lg:shadow-pink-500/50"
+      className="fixed top-0 left-0 right-0 flex bg-[171717]/70 lg:bg-transparent justify-center border-gray-500 m-0 font-sm p-2 bg-primary backdrop-blur-xl z-30 lg:rounded-full lg:mt-5 lg:mx-6 lg:py-2 lg:border-1 lg:shadow-md lg:shadow-pink-500/30"
     >
       <nav className="flex justify-between items-center gap-5 w-full max-w-7xl px-2 md:px-6 h-[3.5rem] mx-auto">
         <div className="flex gap-0 pl-2">
@@ -62,7 +62,7 @@ const Navbar = () => {
         <ul className="hidden text-md text-bold text-center md:flex gap-8 text-gray-200">
           <li>
             <MotionLink
-              href="/home"
+              href="/dashboard"
               className="hover:text-white transition-transform duration-200"
               whileHover={{ y: -4 }}
               layout
@@ -73,24 +73,24 @@ const Navbar = () => {
           </li>
           <li>
             <MotionLink
-              href="/connect"
+              href="#about"
+              className="hover:text-white transition-transform duration-200"
+              whileHover={{ y: -4 }}
+              layout
+            >
+              <UsersRound className="inline-block mr-3 mb-1" size={18} />
+              About us
+            </MotionLink>
+          </li>
+          <li>
+            <MotionLink
+              href="#explore"
               className="hover:text-white transition-transform duration-200"
               whileHover={{ y: -4 }}
               layout
             >
               <Telescope className="inline-block mr-3 mb-1" size={18} />
               Explore
-            </MotionLink>
-          </li>
-          <li>
-            <MotionLink
-              href="/connect"
-              className="hover:text-white transition-transform duration-200"
-              whileHover={{ y: -4 }}
-              layout
-            >
-              <UsersRound className="inline-block mr-3 mb-1" size={18} />
-              Community
             </MotionLink>
           </li>
         </ul>

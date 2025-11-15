@@ -71,13 +71,14 @@ const About = () => {
   };
 
   return (
-    <section className="min-h-screen py-20 px-6 lg:px-16 relative">
+    <section className="min-h-screen pt-20 px-6 lg:px-16 relative">
       {/* Section Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
+        id="about"
         className="max-w-3xl mb-16"
       >
         <div className="flex items-center gap-2 mb-4">
@@ -89,7 +90,7 @@ const About = () => {
 
         <h2
           style={{
-            fontFamily: "var(--font-space-grotesk), quantico, sans-serif",
+            fontFamily: "quantico, sans-serif",
             letterSpacing: "-0.02em",
           }}
           className="text-5xl lg:text-6xl font-black leading-tight mb-6"
@@ -123,7 +124,10 @@ const About = () => {
             className={`p-6 rounded-2xl border backdrop-blur-sm hover:backdrop-blur-md transition-all duration-300 ${feature.color}`}
           >
             <div className="text-white mb-4">{feature.icon}</div>
-            <h3 className="text-xl font-semibold text-white mb-3">
+            <h3
+              style={{ fontFamily: "quantico, sans-serif" }}
+              className="text-xl font-semibold text-white mb-3"
+            >
               {feature.title}
             </h3>
             <p className="text-gray-300 text-sm leading-relaxed">
@@ -134,7 +138,7 @@ const About = () => {
       </motion.div>
 
       {/* Stats Section */}
-      {/* <motion.div
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -147,7 +151,7 @@ const About = () => {
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-4xl lg:text-5xl font-black text-pink-500 mb-2"
+            className="text-4xl lg:text-5xl font-black text-white mb-2"
           >
             100%
           </motion.div>
@@ -161,7 +165,7 @@ const About = () => {
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl lg:text-5xl font-black text-pink-500 mb-2"
+            className="text-2xl lg:text-4xl font-black text-white mb-2"
           >
             AI
           </motion.div>
@@ -175,7 +179,7 @@ const About = () => {
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-4xl lg:text-5xl font-black text-pink-500 mb-2"
+            className="text-4xl lg:text-5xl font-black text-white mb-2"
           >
             24/7
           </motion.div>
@@ -183,7 +187,7 @@ const About = () => {
             Global Access
           </div>
         </div>
-      </motion.div> */}
+      </motion.div>
     </section>
   );
 };

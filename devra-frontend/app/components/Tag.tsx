@@ -8,9 +8,9 @@ const Tag = () => {
       href="https://polkadot.com"
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed z-10 bottom-10 right-10 flex items-center gap-3 px-5 py-3 bg-black/90 border border-gray-700 rounded-full text-decoration-none transition-all duration-300 overflow-hidden hover:shadow-lg hover:shadow-pink-500/20 group"
+      className="fixed z-10 bottom-10 right-10 flex items-center gap-3 px-5 py-3 bg-black/90 border border-gray-700 rounded-full text-decoration-none transition-all duration-1000 overflow-hidden hover:shadow-lg hover:shadow-pink-500/20 group"
     >
-      <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent transform rotate-45 translate-x-[-100%] transition-transform duration-600 pointer-events-none group-hover:translate-x-[100%]"></div>
+      <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent transform rotate-45 translate-x-[-100%] transition-transform duration-1000 pointer-events-none group-hover:translate-x-[100%]"></div>
       <span className="text-gray-400 text-xs tracking-wider uppercase transition-colors duration-300 group-hover:text-pink-500">
         POWERED BY
       </span>

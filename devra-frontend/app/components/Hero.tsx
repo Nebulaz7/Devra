@@ -33,7 +33,7 @@ const Hero = () => {
       <div className="pl-0 md:pl-16 relative z-10">
         <h2
           style={{
-            fontFamily: "var(--font-space-grotesk), quantico, sans-serif",
+            fontFamily: "quantico, sans-serif",
             letterSpacing: "-0.02em",
           }}
           className="text-6xl lg:text-7xl font-black leading-[0.9] mb-8"

@@ -10,50 +10,45 @@ const ctaCard = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.8, delay: 0.5 }}
-      className="text-center bg-gradient-to-r from-pink-700/20 to-pink-900/20 rounded-3xl m-12 p-12 border border-pink-500/10"
+      id="explore"
+      className="text-left rounded-3xl m-12 mb-0 p-12"
     >
-      <Sparkles className="w-16 h-16 text-pink-500 mx-auto mb-6" />
-      <h3
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-12 h-px bg-pink-500"></div>
+        <span className="text-xs text-pink-500 tracking-widest uppercase font-semibold">
+          Explore Devra
+        </span>
+      </div>
+
+      <h2
         style={{
-          fontFamily: " quantico, sans-serif",
+          fontFamily: "quantico, sans-serif",
           letterSpacing: "-0.02em",
         }}
-        className="text-2xl lg:text-4xl font-black text-white mb-4 leading-tight"
+        className="text-5xl lg:text-6xl font-black leading-tight mb-6"
       >
-        Ready to Join the{" "}
-        <span className="bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-          Data Revolution
-        </span>
-        ?
-      </h3>
-      <p className="text-base lg:text-md text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <span className="text-white">Ready to Join the</span>
+        <br />
+        <span className="text-pink-500"> Data Revolution</span>?
+      </h2>
+
+      <p className="text-base text-gray-400 leading-relaxed max-w-2xl pb-4 lg:pb-6">
         Start trading verified datasets on the blockchain. Upload your data, get
         AI verification, and earn rewards in a truly decentralized marketplace.
       </p>
-      <motion.button
-        className="bg-pink-500 text-[14px] text-white md:text-[24px] px-5 py-3 md:px-6 cursor-pointer md:py-3 rounded-full items-center hover:bg-[#101010] shadow-sm shadow-pink-400/50  hover:shadow-md hover:shadow-pink-400/50 transition duration-100"
-        whileHover="hover"
-        style={{
-          fontFamily: " quantico, sans-serif",
-        }}
-        variants={{
-          hover: { scale: 1.0, y: -2 },
-        }}
-        layout
-      >
-        Get Started
-        <motion.span
-          className="text-lg font-extralight"
-          variants={{
-            hover: {
-              x: 4,
-              transition: { stiffness: 400, damping: 10 },
-            },
+      <div className="flex gap-5 flex-wrap">
+        <button
+          onClick={() => {
+            window.location.href = "/connect";
           }}
+          style={{ transform: "skewX(-10deg)" }}
+          className="px-10 py-4 bg-pink-500 hover:bg-pink-600 text-black border-none text-sm font-semibold tracking-widest uppercase cursor-pointer relative transition-all duration-300"
         >
-          <ArrowUpRight className="inline-block mb-1 ml-1 w-3 h-3 md:w-6 md:h-6 " />
-        </motion.span>
-      </motion.button>
+          <span style={{ transform: "skewX(10deg)" }} className="inline-block">
+            Explore Now →
+          </span>
+        </button>
+      </div>
     </motion.div>
   );
 };
