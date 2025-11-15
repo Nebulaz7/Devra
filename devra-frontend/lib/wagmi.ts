@@ -1,6 +1,7 @@
 import type { Chain } from "wagmi/chains";
 import { createConfig, createStorage, http } from "wagmi";
 import { injected } from "@wagmi/connectors";
+import type { EIP1193Provider } from "viem";
 
 // Westend Asset Hub configuration
 export const westendAssetHub = {
@@ -25,6 +26,17 @@ export const westendAssetHub = {
   testnet: true,
 } as const satisfies Chain;
 
+type WindowWithTalisman = Window & {
+  talisman?: {
+    ethereum?: EIP1193Provider;
+  };
+};
+
+const getTalismanProvider = () => {
+  if (typeof window === "undefined") return undefined;
+  return (window as WindowWithTalisman).talisman?.ethereum;
+};
+
 export const config = createConfig({
   chains: [westendAssetHub],
   connectors: [
@@ -35,7 +47,7 @@ export const config = createConfig({
       target: () => ({
         id: "talisman",
         name: "Talisman",
-        provider: (window) => window?.talisman?.ethereum,
+        provider: getTalismanProvider,
       }),
     }),
   ],
