@@ -52,14 +52,14 @@ const Navbar = () => {
           />
           <h1
             style={{ fontFamily: "quantico, sans-serif" }}
-            className="font-2xl text-white inline-block mt-3"
+            className="font-xl text-white inline-block mt-1"
           >
             evra
           </h1>
         </div>
 
         {/* Desktop Menu */}
-        <ul className="hidden text-lg text-bold text-center md:flex gap-8 text-gray-200">
+        <ul className="hidden text-md text-bold text-center md:flex gap-8 text-gray-200">
           <li>
             <MotionLink
               href="/home"
@@ -101,7 +101,7 @@ const Navbar = () => {
             onClick={() => {
               window.location.href = "/connect";
             }}
-            className="bg-pink-500 text-[16px] text-white px-4 cursor-pointer py-2 rounded-full flex items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300"
+            className="bg-pink-500 text-sm text-bold text-white px-4 cursor-pointer py-2 rounded-full flex items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300"
             whileHover="hover"
             variants={{
               hover: { scale: 1.0 },
@@ -109,7 +109,7 @@ const Navbar = () => {
             layout
           >
             <Wallet className="inline mb-0" size={20} />
-            Connect App
+            Connect
             <motion.span
               className="text-lg font-extralight"
               variants={{

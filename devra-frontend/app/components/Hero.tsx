@@ -1,12 +1,36 @@
 "use client";
 import React from "react";
 import Image from "next/image";
+import FloatingLines from "../animations/FloatingLines";
 
 const Hero = () => {
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-6 px-6 lg:pt-12 lg:px-16">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-6 px-6 lg:pt-12 lg:px-16 relative">
+      {/* Background Overlay - FloatingLines */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <FloatingLines
+          enabledWaves={["top", "bottom"]}
+          lineCount={[10, 15, 20]}
+          lineDistance={[8, 6, 4]}
+          bendRadius={5.0}
+          bendStrength={-0.5}
+          interactive={false}
+          parallax={true}
+        />
+      </div>
+
       {/* Left Section - Header and CTA */}
-      <div className="pl-0 md:pl-16">
+      <div className="pl-0 md:pl-16 relative z-10">
         <h2
           style={{
             fontFamily: "var(--font-space-grotesk), quantico, sans-serif",
@@ -30,8 +54,8 @@ const Hero = () => {
         </h2>
 
         <p className="text-base text-gray-400 max-w-md leading-relaxed mb-10">
-          The decentralized data marketplace starts here. Upload datasets,
-          verify with AI, trade securely.
+          The decentralized data marketplace starts here. Upload and mint
+          datasets, verify with AI, trade datasets as NFTs securely.
         </p>
 
         {/* Secured by Section */}
@@ -67,7 +91,9 @@ const Hero = () => {
       </div>
 
       {/* Right Section - Placeholder for image or graphic */}
-      <div>{/* Placeholder for future image or graphic */}</div>
+      <div className="relative z-10">
+        {/* Placeholder for future image or graphic */}
+      </div>
     </div>
   );
 };
