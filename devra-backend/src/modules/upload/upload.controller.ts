@@ -12,7 +12,6 @@ import type { Request } from 'express';
 import { CreateDatasetDto } from './dto/create-dataset.dto';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { UploadQueueService } from '../crust/queue/upload-queue.service';
-import { CrustService } from '../crust/crust.service';
 import { VerificationService } from '../verification/verification.service';
 import { VerifyResultDto } from '../encryption/dto/verified-file.dto';
 
@@ -22,7 +21,6 @@ export class UploadController {
     private readonly encryptService: EncryptService,
     private readonly datasetRecordService: DatasetRecordService,
     private readonly uploadQueueService: UploadQueueService,
-    private readonly crustService: CrustService,
     private readonly verificationService: VerificationService,
   ) {}
 
@@ -68,24 +66,25 @@ export class UploadController {
     const verificationResult =
       await this.verificationService.verifyDataset(file);
 
-    const encryptionResult = await this.encryptService.encryptDataset(file);
+    const fileEncryptionResult = await this.encryptService.encryptDataset(file);
 
     const datasetRecord = await this.datasetRecordService.createRecord(
       createDatasetDto,
+      null,
       verificationResult,
       {
         hash,
-        aesKeyEncrypted: encryptionResult.encryptedKey, // RSA-encrypted AES key
+        aesKeyEncrypted: fileEncryptionResult.encryptedKey, // RSA-encrypted AES key
         vaultKeyRef: 'private-key', // Reference in Vault
-        iv: encryptionResult.iv,
-        authTag: encryptionResult.authTag,
+        iv: fileEncryptionResult.iv,
+        authTag: fileEncryptionResult.authTag,
       },
     );
     console.log('🗂️  Dataset record created:', datasetRecord);
 
     await this.uploadQueueService.addJob({
       datasetId: datasetRecord.id,
-      filePath: encryptionResult.encryptedPath,
+      filePath: fileEncryptionResult.encryptedPath,
       metadata: createDatasetDto,
     });
 
@@ -95,7 +94,7 @@ export class UploadController {
       message: 'Dataset verified, encrypted, and uploaded successfully',
       datasetRecord,
       metadata: createDatasetDto,
-      encryptedPath: encryptionResult.encryptedPath,
+      encryptedPath: fileEncryptionResult.encryptedPath,
       hash,
       verification: verifyResultDto,
     };

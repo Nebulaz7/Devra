@@ -6,6 +6,7 @@ import { CrustService } from '../crust.service';
 import { UploadJobData } from './upload-queue.service';
 import type { Redis } from 'ioredis';
 import { DatasetRecordService } from 'src/modules/encryption/dataset-record.service';
+import { EncryptService } from '../../encryption/encrypt.service';
 
 @Injectable()
 export class UploadProcessor implements OnModuleInit {
@@ -16,6 +17,7 @@ export class UploadProcessor implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly crustService: CrustService,
+    private readonly encryptService: EncryptService,
     private readonly datasetRecordService: DatasetRecordService,
   ) {}
 
@@ -34,8 +36,21 @@ export class UploadProcessor implements OnModuleInit {
           this.logger.log(`✅ Upload complete for ${filePath}: ${cid}`);
 
           if (datasetId && typeof datasetId === 'string' && cid) {
-            await this.datasetRecordService.markAsUploaded(datasetId, cid);
-            this.logger.log(`🗄️ Dataset ${datasetId} updated with CID.`);
+            // Encrypt the CID
+            const encryptedCidData = await this.encryptService.encryptCid(cid);
+            this.logger.log(`🔐 CID encrypted for dataset ${datasetId}`);
+
+            // Update dataset with encrypted CID (no need to remap, pass directly)
+            await this.datasetRecordService.markAsUploaded(
+              datasetId,
+              cid,
+              encryptedCidData,
+            );
+            this.logger.log(
+              `🗄️ Dataset ${datasetId} updated with encrypted CID.`,
+              ` cid: ${cid}`,
+              `Encrypted CID: ${encryptedCidData.encryptedCid}`,
+            );
           } else {
             this.logger.warn(
               `⚠️ Missing datasetId or CID — skipping DB update.`,

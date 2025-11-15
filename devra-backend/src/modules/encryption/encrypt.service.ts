@@ -15,7 +15,6 @@ export class EncryptService {
     hash.update(file.buffer);
     return Promise.resolve(hash.digest('hex'));
   }
-
   async encryptDataset(file: Express.Multer.File): Promise<EncryptedFileDto> {
     const aesKey = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
@@ -56,6 +55,59 @@ export class EncryptService {
     result.authTag = authTag.toString('hex');
 
     return result;
+  }
+
+  async encryptCid(cid: string) {
+    const aesKey = crypto.randomBytes(32);
+    const iv = crypto.randomBytes(16);
+
+    const cipher = crypto.createCipheriv(this.algorithm, aesKey, iv);
+
+    const encrypted = Buffer.concat([
+      cipher.update(Buffer.from(cid, 'utf8')),
+      cipher.final(),
+    ]);
+
+    const authTag = cipher.getAuthTag();
+
+    const keyId = `cid-aes-key-${Date.now()}`;
+    const encryptedKey = await this.rsaService.encryptKey(aesKey, keyId);
+
+    return {
+      encryptedCid: encrypted.toString('hex'),
+      encryptedKey,
+      keyId,
+      iv: iv.toString('hex'),
+      authTag: authTag.toString('hex'),
+    };
+  }
+
+  async decryptCid(
+    encryptedCidHex: string,
+    keyId: string,
+    ivHex: string,
+    authTagHex: string,
+  ): Promise<string> {
+    try {
+      const aesKey = await this.rsaService.decryptKey(keyId);
+      const iv = Buffer.from(ivHex, 'hex');
+      const authTag = Buffer.from(authTagHex, 'hex');
+      const encrypted = Buffer.from(encryptedCidHex, 'hex');
+
+      const decipher = crypto.createDecipheriv(this.algorithm, aesKey, iv);
+      decipher.setAuthTag(authTag);
+
+      const decrypted = Buffer.concat([
+        decipher.update(encrypted),
+        decipher.final(),
+      ]);
+
+      return decrypted.toString('utf8');
+    } catch (err) {
+      throw new Error(
+        `Failed to decrypt CID: ${(err as Error).message || err}`,
+      );
+    }
   }
 
   async decryptFile(

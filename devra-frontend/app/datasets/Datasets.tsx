@@ -90,7 +90,7 @@ export default function Datasets() {
     if (address && isConnected) {
       fetchDatasets();
     }
-  }, [address, isConnected, nftBalance]);
+  });
 
   const fetchDatasets = async () => {
     if (!address || nftBalance === 0) {

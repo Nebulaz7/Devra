@@ -107,6 +107,8 @@ export class CrustService {
       this.logger.log(`✅ Uploaded successfully: ${Name || filePath}`);
       this.logger.debug(`🔗 Access via: ${gatewayUrl}`);
 
+      console.log('CID', Hash);
+
       return {
         success: true,
         hash: Hash,

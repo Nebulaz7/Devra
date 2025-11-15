@@ -13,10 +13,11 @@ model Dataset {
   name         String
   owner        String
   hash         String
-  encryption   Json
+  fileEncryption Json
+  cidEncryption  Json?
   verification Json?
-  cidHash      String?
   ipfsUrl      String?
+  tokenUri     String?
   status       String   @default("pending")
   createdAt    DateTime @default(now())
 }

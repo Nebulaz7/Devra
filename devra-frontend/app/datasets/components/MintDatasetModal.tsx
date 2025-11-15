@@ -400,14 +400,7 @@ const handleStartProcess = async () => {
 
                   {/* Actions */}
                   <div className="flex gap-4 pt-6">
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="flex-1 px-6 py-4 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-colors font-semibold border border-white/10"
-                    >
-                      Cancel
-                    </button>
-                    <button
+                                        <button
                       type="button"
                       onClick={handleStartProcess}
                       disabled={
@@ -419,7 +412,13 @@ const handleStartProcess = async () => {
                       className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                     >
                       <Sparkles className="w-5 h-5" />
-                      Mint Dataset
+                      Upload Dataset
+                    </button>
+                    <button
+                      type="button"
+                      className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    >
+                    Mint Dataset
                     </button>
                   </div>
 

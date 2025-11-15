@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDatasetDto } from '../upload/dto/create-dataset.dto';
 import { VerifyResultDto } from '../encryption/dto/verified-file.dto';
+import { EncryptedCidDto } from './dto/encrypted-cid.dto';
 
 @Injectable()
 export class DatasetRecordService {
@@ -9,6 +10,7 @@ export class DatasetRecordService {
 
   async createRecord(
     metadata: CreateDatasetDto,
+    cidEncryption: EncryptedCidDto | null,
     verification: VerifyResultDto,
     extra: {
       hash: string;
@@ -34,7 +36,7 @@ export class DatasetRecordService {
       isValid: verification.isValid,
     };
 
-    const encryptionDetails = {
+    const fileEncryptionDetails = {
       aesKeyEncrypted: extra.aesKeyEncrypted,
       vaultKeyRef: extra.vaultKeyRef,
       iv: extra.iv,
@@ -42,13 +44,24 @@ export class DatasetRecordService {
       algorithm: extra.algorithm || 'aes-256-gcm',
     };
 
+    const cidEncryptionDetails = cidEncryption
+      ? {
+          cidHash: cidEncryption.cidHash,
+          keyId: cidEncryption.keyId,
+          iv: cidEncryption.iv,
+          authTag: cidEncryption.authTag,
+        }
+      : undefined;
+
     const record = await this.prisma.dataset.create({
       data: {
         name: metadata.name,
         owner: metadata.owner ?? 'unknown',
         hash: extra.hash,
-        encryption: encryptionDetails,
+        fileEncryption: fileEncryptionDetails,
+        cidEncryption: cidEncryptionDetails,
         verification: verificationDetails,
+
         status: 'pending',
       },
     });
@@ -56,7 +69,17 @@ export class DatasetRecordService {
     return record;
   }
 
-  async markAsUploaded(id: string, cid: string) {
+  async markAsUploaded(
+    id: string,
+    cid: string,
+    encryptedCidData: {
+      encryptedCid: string;
+      encryptedKey: string;
+      keyId: string;
+      iv: string;
+      authTag: string;
+    },
+  ) {
     const ipfsUrl = `https://gw.crustfiles.app/ipfs/${cid}`;
     console.log(
       `🛰️  Dataset uploaded to Crust with CID: ${cid}, IPFS URL: ${ipfsUrl}`,
@@ -65,7 +88,12 @@ export class DatasetRecordService {
     const updated = await this.prisma.dataset.update({
       where: { id },
       data: {
-        cidHash: cid,
+        cidEncryption: {
+          encryptedCid: encryptedCidData.encryptedCid,
+          key: encryptedCidData.keyId,
+          iv: encryptedCidData.iv,
+          authTag: encryptedCidData.authTag,
+        },
         ipfsUrl: ipfsUrl,
         status: 'uploaded',
         createdAt: new Date(),
@@ -74,7 +102,6 @@ export class DatasetRecordService {
 
     return updated;
   }
-
   async findAll() {
     return this.prisma.dataset.findMany();
   }

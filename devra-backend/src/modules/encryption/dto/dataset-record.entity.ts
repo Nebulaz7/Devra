@@ -15,13 +15,13 @@ export class DatasetRecord {
   hash: string;
 
   @Column('jsonb')
-  encryption: any;
+  fileEncryption: any;
+
+  @Column('jsonb')
+  cidEncryption: any;
 
   @Column('jsonb')
   verification: any;
-
-  @Column({ nullable: true })
-  cidHash: string;
 
   @Column({ nullable: true })
   ipfsUrl: string;
