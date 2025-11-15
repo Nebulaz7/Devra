@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Shield,
@@ -32,6 +32,7 @@ import {
   useNFTOwner,
 } from "@/lib/contracts/useDataset";
 import { formatWND, getTxExplorerUrl } from "@/lib/contracts/config";
+import Image from "next/image";
 
 const CATEGORIES = [
   "Medicine",
@@ -89,9 +90,11 @@ export default function DatasetDetailPage() {
       toast.loading("Processing purchase...", { id: "purchase" });
       await buy(tokenId, dataset.price);
       toast.success("Purchase completed!", { id: "purchase" });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Purchase error:", error);
-      toast.error(error.message || "Purchase failed", { id: "purchase" });
+      const errorMessage =
+        error instanceof Error ? error.message : "Purchase failed";
+      toast.error(errorMessage, { id: "purchase" });
     }
   };
 
@@ -144,9 +147,11 @@ export default function DatasetDetailPage() {
         icon: "📥",
         duration: 5000,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Download error:", error);
-      setDownloadError(error.message || "Failed to download dataset");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to download dataset";
+      setDownloadError(errorMessage);
       toast.error("Download failed", { id: "download" });
     } finally {
       setIsDownloading(false);
@@ -178,7 +183,7 @@ export default function DatasetDetailPage() {
               Dataset Not Found
             </h2>
             <p className="text-gray-400 mb-6">
-              This dataset doesn't exist or has been removed
+              This dataset doesn&apos;t exist or has been removed
             </p>
             <button
               onClick={() => router.push("/marketplace")}
@@ -221,7 +226,7 @@ export default function DatasetDetailPage() {
                 className="bg-gradient-to-br from-gray-900 to-black border border-pink-500/20 rounded-2xl p-8"
               >
                 <div className="flex items-start gap-6">
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt="Creator"
                     className="w-20 h-20 rounded-2xl border-2 border-pink-500/30"
@@ -387,8 +392,9 @@ export default function DatasetDetailPage() {
                 <p className="text-gray-400 leading-relaxed">
                   This is a high-quality, AI-verified dataset perfect for
                   training machine learning models. The data has been thoroughly
-                  validated and encrypted for security. Once purchased, you'll
-                  receive full access to the decrypted dataset via IPFS.
+                  validated and encrypted for security. Once purchased,
+                  you&apos;ll receive full access to the decrypted dataset via
+                  IPFS.
                 </p>
                 <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                   <div className="flex items-start gap-3">
@@ -587,8 +593,8 @@ export default function DatasetDetailPage() {
                           Access Granted!
                         </p>
                         <p className="text-green-300/70 text-xs">
-                          Click "Download Dataset" to decrypt and access your
-                          data via IPFS.
+                          Click &quot;Download Dataset&quot; to decrypt and
+                          access your data via IPFS.
                         </p>
                       </div>
                     </div>
@@ -632,7 +638,7 @@ export default function DatasetDetailPage() {
                 <div className="pt-4 border-t border-white/10">
                   <p className="text-sm text-gray-400 mb-3">Creator</p>
                   <div className="flex items-center gap-3">
-                    <img
+                    <Image
                       src={avatarUrl}
                       alt="Creator"
                       className="w-10 h-10 rounded-lg border border-pink-500/30"

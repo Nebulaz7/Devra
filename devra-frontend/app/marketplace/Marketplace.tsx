@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   RefreshCw,
-  Filter,
   Loader2,
   Package,
   TrendingUp,

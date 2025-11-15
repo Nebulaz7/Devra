@@ -613,7 +613,7 @@ const Connect = () => {
 
               {/* Help Text */}
               <p className="mt-6 text-xs text-center text-gray-400">
-                Don't have a wallet?{" "}
+                Don&apos;t have a wallet?{" "}
                 <a
                   href="https://metamask.io/download/"
                   target="_blank"

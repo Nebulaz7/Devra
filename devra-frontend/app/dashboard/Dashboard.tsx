@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ExternalLink,
-  User,
   Database,
   ShoppingBag,
   ArrowDownLeft,
@@ -83,7 +82,7 @@ const BloAvatar = ({ address, size }: { address: string; size: number }) => {
       className="rounded-full overflow-hidden shadow-lg border-2 border-white/20"
       style={{ width: size, height: size }}
     >
-      <img
+      <Image
         src={avatarUrl}
         alt="Wallet Avatar"
         width={size}

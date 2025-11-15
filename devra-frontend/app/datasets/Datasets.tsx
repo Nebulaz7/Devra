@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Database,
   Plus,
@@ -8,15 +9,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
-  TrendingUp,
   DollarSign,
   Edit,
   X as XIcon,
   Loader2,
   Tag,
   ExternalLink,
-  CheckCircle,
-  AlertCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
@@ -302,7 +300,7 @@ export default function Datasets() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="relative">
-                                <img
+                                <Image
                                   src={avatarUrl}
                                   alt="Creator"
                                   className="w-10 h-10 rounded-lg border-2 border-pink-500/20"
@@ -531,9 +529,11 @@ function CancelListingButton({
 
     try {
       await cancel(tokenId);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Cancel error:", error);
-      toast.error(error.message || "Failed to cancel listing");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to cancel listing";
+      toast.error(errorMessage);
     }
   };
 
@@ -592,9 +592,11 @@ function ListPriceModal({
 
     try {
       await list(tokenId, price);
-    } catch (error: any) {
+    } catch (error) {
       console.error("List error:", error);
-      toast.error(error.message || "Failed to list dataset");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to list dataset";
+      toast.error(errorMessage);
     }
   };
 

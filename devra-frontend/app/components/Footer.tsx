@@ -2,11 +2,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 const Footer = () => {
-  const router = useRouter();
-
   return (
     <footer className="border-t border-gray-800 px-6 lg:px-16 py-14 lg:py-16">
       {/* Floating elements */}
