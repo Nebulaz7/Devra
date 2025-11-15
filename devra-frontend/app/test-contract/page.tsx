@@ -2,7 +2,7 @@
 
 import { useAccount } from "wagmi";
 import { useState } from "react";
-import { ExternalLink, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import {
   useMintDataset,
   useListDataset,
@@ -71,9 +71,11 @@ export default function TestContractPage() {
     }
     try {
       await mint(mintCid);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Mint error:", error);
-      alert(`Minting failed: ${error.message || "Unknown error"}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Minting failed: ${errorMessage}`);
     }
   };
 
@@ -84,9 +86,11 @@ export default function TestContractPage() {
     }
     try {
       await list(parseInt(listTokenId), listPrice);
-    } catch (error: any) {
+    } catch (error) {
       console.error("List error:", error);
-      alert(`Listing failed: ${error.message || "Unknown error"}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Listing failed: ${errorMessage}`);
     }
   };
 
@@ -97,9 +101,11 @@ export default function TestContractPage() {
     }
     try {
       await cancel(parseInt(cancelTokenId));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Cancel error:", error);
-      alert(`Cancel failed: ${error.message || "Unknown error"}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Cancel failed: ${errorMessage}`);
     }
   };
 
@@ -114,9 +120,11 @@ export default function TestContractPage() {
     }
     try {
       await buy(parseInt(buyTokenId), dataset.price);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Buy error:", error);
-      alert(`Purchase failed: ${error.message || "Unknown error"}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Purchase failed: ${errorMessage}`);
     }
   };
 
