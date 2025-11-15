@@ -22,6 +22,7 @@ const Connect = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Wagmi hooks
   const { address, isConnected, chain } = useAccount();
@@ -30,6 +31,11 @@ const Connect = () => {
   const { switchChain } = useSwitchChain();
 
   const isCorrectNetwork = chain?.id === westendAssetHub.id;
+
+  // Wait for client-side hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Auto-redirect when connected to correct network
   useEffect(() => {
@@ -236,8 +242,21 @@ const Connect = () => {
     },
   ];
 
-  // Render connect button based on state
+  // Render connect button based on state - only after mount
   const renderConnectButton = () => {
+    // Show loading state during hydration
+    if (!isMounted) {
+      return (
+        <motion.button
+          className="bg-gray-500 text-[16px] text-white px-4 flex cursor-not-allowed py-2 rounded-full items-center border-2 border-gray-500 gap-2 transition duration-300"
+          disabled
+        >
+          <Wallet className="inline mb-0" size={20} />
+          Loading...
+        </motion.button>
+      );
+    }
+
     if (address && isCorrectNetwork) {
       return (
         <motion.button
@@ -367,17 +386,19 @@ const Connect = () => {
                   Target Network
                 </p>
                 <div className="flex items-center gap-2">
-                  {/* Status Indicator */}
-                  <span className="relative flex h-2 w-2">
-                    {isCorrectNetwork ? (
-                      <>
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                      </>
-                    ) : (
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
-                    )}
-                  </span>
+                  {/* Status Indicator - only render after mount */}
+                  {isMounted && (
+                    <span className="relative flex h-2 w-2">
+                      {isCorrectNetwork ? (
+                        <>
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </>
+                      ) : (
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
+                      )}
+                    </span>
+                  )}
                   <p className="text-white font-medium text-sm">
                     Westend Asset Hub
                   </p>
