@@ -103,13 +103,14 @@ const Navbar = () => {
             }}
             className="bg-pink-500 text-sm text-bold text-white px-4 cursor-pointer py-2 rounded-full flex items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300"
             whileHover="hover"
+            style={{ fontFamily: "quantico, sans-serif" }}
             variants={{
               hover: { scale: 1.0 },
             }}
             layout
           >
             <Wallet className="inline mb-0" size={20} />
-            Connect
+            Connect app
             <motion.span
               className="text-lg font-extralight"
               variants={{
