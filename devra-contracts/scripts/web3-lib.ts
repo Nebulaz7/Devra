@@ -15,7 +15,7 @@ export const deploy = async (contractName: string, args: Array<any>, from?: stri
   console.log(`deploying ${contractName}`)
   // Note that the script needs the ABI which is generated from the compilation artifact.
   // Make sure contract is compiled and artifacts are generated
-  const artifactsPath = `browser/artifacts/${contractName}.json`
+  const artifactsPath = `browser/contracts/artifacts/${contractName}.json`
 
   const metadata = JSON.parse(await remix.call('fileManager', 'getFile', artifactsPath))
 
@@ -28,9 +28,13 @@ export const deploy = async (contractName: string, args: Array<any>, from?: stri
     arguments: args
   })
 
+  const gasEstimate = await contractSend.estimateGas({
+    from: from || accounts[0],
+  })
+
   const newContractInstance = await contractSend.send({
     from: from || accounts[0],
-    gas: gas || 1500000
+    gas: gas || gasEstimate
   })
   return newContractInstance.options
 }
