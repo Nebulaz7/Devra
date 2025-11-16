@@ -126,7 +126,6 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Button */}
-        {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="md:hidden lg:hidden text-white p-2 cursor-pointer"
@@ -180,20 +179,20 @@ const Navbar = () => {
             </li>
             <li>
               <Link
-                href="/dashboard"
+                href="#about"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl transition-colors"
               >
-                Explore
-                <Telescope className="inline-block ml-0.5" size={24} />
+                About
+                <UsersRound className="inline-block ml-1" size={24} />
               </Link>
             </li>
             <li>
               <Link
-                href="/connect"
+                href="#explore"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl  transition-colors"
               >
-                Community
-                <UsersRound className="inline-block ml-0.5" size={24} />
+                Explore
+                <Telescope className="inline-block ml-0.5" size={24} />
               </Link>
             </li>
             <li></li>
@@ -201,6 +200,7 @@ const Navbar = () => {
           {/* Connect button for mobile */}
           <div className="md:hidden ml-2 mb-2 lg:hidden flex items-center gap-6">
             <motion.button
+              style={{ fontFamily: "quantico, sans-serif" }}
               className="text-white px-4 cursor-pointer py-2 rounded-full flex items-center gap-2 hover:bg-pink-500 bg-[#101010] transition duration-300"
               whileHover="hover"
               variants={{
@@ -212,7 +212,7 @@ const Navbar = () => {
               layout
             >
               <Wallet className="inline mb-0" size={20} />
-              Connect
+              Connect app
               <motion.span
                 className="text-lg font-extralight"
                 variants={{
