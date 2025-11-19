@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class EncryptedCidDto {
   @ApiProperty({ description: 'Encrypted CID Hash' })
-  cidHash: string;
+  encryptedCid: string;
 
   @ApiProperty({ description: 'RSA-encrypted AES key (Base64 encoded)' })
   encryptedKey: string;

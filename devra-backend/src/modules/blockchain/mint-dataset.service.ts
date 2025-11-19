@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
-import { EncryptService } from '../encryption/encrypt.service';
-import { Dataset } from '@prisma/client'; // assuming you're using Prisma
+import { Dataset } from '@prisma/client';
 
 @Injectable()
 export class MintDatasetService {
@@ -9,9 +9,13 @@ export class MintDatasetService {
   private provider: ethers.Provider;
   private contract: ethers.Contract;
 
-  constructor(private readonly encryptService: EncryptService) {
-    const rpcUrl = process.env.RPC_URL!;
-    const contractAddress = process.env.CONTRACT_ADDRESS!;
+  constructor(private readonly configService: ConfigService) {
+    const rpcUrl = this.configService.get<string>('RPC_URL');
+    const contractAddress = this.configService.get<string>('CONTRACT_ADDRESS');
+
+    if (!rpcUrl || !contractAddress) {
+      throw new Error('RPC_URL or CONTRACT_ADDRESS not configured');
+    }
 
     const abi = [
       'function mint(address to, string tokenURI) public returns (uint256)',
@@ -28,37 +32,40 @@ export class MintDatasetService {
    * @param dataset - Prisma Dataset record
    * @param owner - User wallet address
    */
-  async prepareMint(dataset: Dataset, owner: string) {
-    if (!ethers.isAddress(owner)) {
-      throw new Error('Invalid owner address');
+  prepareMint(dataset: Dataset, owner: string) {
+    this.logger.log(`Validating owner address: "${owner}"`);
+
+    const cleanedOwner = (owner ?? '').trim();
+
+    if (!cleanedOwner) {
+      this.logger.error('Owner address is empty or undefined');
+      throw new Error('Owner address is required');
     }
 
-    const cidEncryption = dataset.cidEncryption as {
-      encryptedCidHex: string;
-      keyId: string;
-      ivHex: string;
-      authTagHex: string;
-    };
-
-    if (!cidEncryption) {
-      throw new Error('CID encryption not found for this dataset');
+    if (!ethers.isAddress(cleanedOwner)) {
+      this.logger.error(
+        `Invalid Ethereum address format: "${String(cleanedOwner)}"`
+      );
+      throw new Error(`Invalid owner address format: ${String(cleanedOwner)}`);
     }
 
-    // Decrypt the CID from the encryption envelope
-    const cid = await this.encryptService.decryptCid(
-      cidEncryption.encryptedCidHex,
-      cidEncryption.keyId,
-      cidEncryption.ivHex,
-      cidEncryption.authTagHex
-    );
+    // Get plain CID from dataset
+    const cid = dataset.cid;
+
+    if (!cid) {
+      throw new Error('CID not found for this dataset');
+    }
 
     const tokenURI = `ipfs://${cid}`;
 
-    // Encode the mint function data for the frontend wallet to sign
     const mintData = this.contract.interface.encodeFunctionData('mint', [
-      owner,
+      cleanedOwner,
       tokenURI,
     ]);
+
+    this.logger.log(
+      `🎨 Mint prepared for ${cleanedOwner} with tokenURI: ${tokenURI}`
+    );
 
     return {
       tx: {
@@ -71,26 +78,14 @@ export class MintDatasetService {
   }
 
   /**
-   * Returns the decrypted tokenURI from a Dataset
+   * Returns the tokenURI from a Dataset
    */
-  async getDecryptedTokenURI(dataset: Dataset) {
-    const cidEncryption = dataset.cidEncryption as {
-      encryptedCidHex: string;
-      keyId: string;
-      ivHex: string;
-      authTagHex: string;
-    };
+  getTokenURI(dataset: Dataset): string {
+    const cid = dataset.cid;
 
-    if (!cidEncryption) {
-      throw new Error('CID encryption not found for this dataset');
+    if (!cid) {
+      throw new Error('CID not found for this dataset');
     }
-
-    const cid = await this.encryptService.decryptCid(
-      cidEncryption.encryptedCidHex,
-      cidEncryption.keyId,
-      cidEncryption.ivHex,
-      cidEncryption.authTagHex
-    );
 
     return `ipfs://${cid}`;
   }

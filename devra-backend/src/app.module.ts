@@ -6,7 +6,7 @@ import { CrustModule } from './modules/crust/crust.module';
 import { ConfigModule } from '@nestjs/config';
 import { EncryptionModule } from './modules/encryption/encrypt.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
-
+import { MintModule } from './modules/blockchain/mint-dataset.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -16,6 +16,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     EncryptionModule,
     CrustModule,
     PrismaModule,
+    MintModule,
   ],
   controllers: [AppController],
   providers: [AppService],

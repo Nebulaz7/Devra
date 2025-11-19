@@ -9,15 +9,17 @@ datasource db {
 }
 
 model Dataset {
-  id           String   @id @default(uuid())
-  name         String
-  owner        String
-  hash         String
+  id             String   @id @default(uuid())
+  name           String
+  owner          String
+  hash           String
   fileEncryption Json
-  cidEncryption  Json?
-  verification Json?
-  ipfsUrl      String?
-  tokenUri     String?
-  status       String   @default("pending")
-  createdAt    DateTime @default(now())
+  cid            String?
+  tokenId        Int?     @unique
+  verification   Json?
+  ipfsUrl        String?
+  tokenUri       String?
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

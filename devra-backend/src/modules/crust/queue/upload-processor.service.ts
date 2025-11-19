@@ -36,21 +36,8 @@ export class UploadProcessor implements OnModuleInit {
           this.logger.log(`✅ Upload complete for ${filePath}: ${cid}`);
 
           if (datasetId && typeof datasetId === 'string' && cid) {
-            // Encrypt the CID
-            const encryptedCidData = await this.encryptService.encryptCid(cid);
-            this.logger.log(`🔐 CID encrypted for dataset ${datasetId}`);
-
-            // Update dataset with encrypted CID (no need to remap, pass directly)
-            await this.datasetRecordService.markAsUploaded(
-              datasetId,
-              cid,
-              encryptedCidData,
-            );
-            this.logger.log(
-              `🗄️ Dataset ${datasetId} updated with encrypted CID.`,
-              ` cid: ${cid}`,
-              `Encrypted CID: ${encryptedCidData.encryptedCid}`,
-            );
+            await this.datasetRecordService.markAsUploaded(datasetId, cid);
+            this.logger.log(`🗄️ Dataset ${datasetId} updated with CID: ${cid}`);
           } else {
             this.logger.warn(
               `⚠️ Missing datasetId or CID — skipping DB update.`,

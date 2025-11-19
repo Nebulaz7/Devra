@@ -70,16 +70,16 @@ export class UploadController {
 
     const datasetRecord = await this.datasetRecordService.createRecord(
       createDatasetDto,
-      null,
       verificationResult,
       {
         hash,
-        aesKeyEncrypted: fileEncryptionResult.encryptedKey, // RSA-encrypted AES key
-        vaultKeyRef: 'private-key', // Reference in Vault
+        aesKeyEncrypted: fileEncryptionResult.encryptedKey,
+        vaultKeyRef: 'private-key',
         iv: fileEncryptionResult.iv,
         authTag: fileEncryptionResult.authTag,
       },
     );
+
     console.log('🗂️  Dataset record created:', datasetRecord);
 
     await this.uploadQueueService.addJob({
