@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { UploadController } from './upload.controller';
 import { UploadService } from './upload.service';
 import { EncryptService } from '../encryption/encrypt.service';
-import { RsaService } from '../encryption/rsa/rsa.service';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { UploadQueueService } from '../crust/queue/upload-queue.service';
 import { CrustService } from '../crust/crust.service';
@@ -17,7 +16,6 @@ import { VerificationService } from '../verification/verification.service';
   providers: [
     UploadService,
     EncryptService,
-    RsaService,
     DatasetRecordService,
     UploadQueueService,
     CrustService,

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   ShoppingCart,
   TrendingUp,
@@ -125,7 +126,7 @@ useEffect(() => {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 flex-1">
             <div className="relative">
-              <img
+              <Image
                 src={avatarUrl}
                 alt="Creator"
                 className="w-14 h-14 rounded-xl border-2 border-pink-500/30 group-hover:border-pink-500/60 transition-colors"

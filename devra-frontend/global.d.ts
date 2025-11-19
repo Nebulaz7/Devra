@@ -3,7 +3,18 @@ declare module "*.css" {
   export default content;
 }
 
-interface Window {
-  ethereum?: any;
-  talisman?: any;
+declare module "*.scss" {
+  const content: Record<string, string>;
+  export default content;
 }
+
+declare global {
+  interface Window {
+    talisman?: {
+      ethereum?: any;
+    };
+    ethereum?: any;
+  }
+}
+
+export {};

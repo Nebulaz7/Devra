@@ -16,6 +16,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter as useNextRouter } from "next/navigation";
+import Image from "next/image";
 
 const DoubleLineIcon = ({ size = 30, className = "" }) => (
   <svg
@@ -162,12 +163,12 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
 
               {/* Logo */}
               <Link href="/" className="flex items-center">
-                <h1
-                  style={{ fontFamily: "quantico, sans-serif" }}
-                  className="text-xl sm:text-2xl font-bold text-white hover:text-pink-500 transition-colors duration-200"
-                >
-                  Devra
-                </h1>
+                <Image
+                  src="/devra-full-logo.svg"
+                  alt="Devra Logo"
+                  width={100}
+                  height={20}
+                />
               </Link>
             </div>
 
@@ -234,7 +235,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => router.push("/test-upload")}
+                onClick={() => router.push("/datasets")}
                 className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full cursor-pointer font-medium text-sm transition-all duration-200 shadow-lg shadow-pink-500/25"
               >
                 <Plus className="w-4 h-4" />
@@ -243,7 +244,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
 
               {/* Upload Dataset Button - Tablet */}
               <motion.button
-                onClick={() => router.push("/test-upload")}
+                onClick={() => router.push("/datasets")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="hidden cursor-pointer md:flex lg:hidden items-center gap-1 px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-medium text-sm transition-all duration-200"
@@ -254,7 +255,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
 
               {/* Upload Dataset Button - Mobile */}
               <motion.button
-                onClick={() => router.push("/test-upload")}
+                onClick={() => router.push("/datasets")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="md:hidden px-3 py-2 bg-pink-500 hover:bg-pink-600 cursor-pointer text-white rounded-full transition-all duration-200"
@@ -271,7 +272,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                         onClick={() =>
                           setIsWalletDropdownOpen(!isWalletDropdownOpen)
                         }
-                        className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200"
+                        className="flex items-center gap-1.5 cursor-pointer sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-full text-white text-xs sm:text-sm font-medium transition-all duration-200"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -308,7 +309,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                                 <p className="text-xs text-gray-400 mb-1">
                                   Wallet Address
                                 </p>
-                                <p className="text-xs sm:text-sm text-white break-all font-mono">
+                                <p className="text-xs sm:text-sm text-gray-100 break-all font-mono">
                                   {address}
                                 </p>
                               </div>
@@ -416,7 +417,7 @@ const Nav = ({ activeTab }: NavProps = { activeTab: undefined }) => {
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    router.push("/test-upload");
+                    router.push("/datasets");
                   }}
                   className="flex items-center gap-3 w-full px-4 py-3 bg-pink-500 text-white cursor-pointer hover:bg-pink-600 rounded-full transition-all duration-200"
                 >

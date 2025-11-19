@@ -38,7 +38,7 @@ const Navbar = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       viewport={{ once: true }}
-      className="fixed top-0 left-0 right-0 flex bg-[171717]/70 lg:bg-transparent justify-center border-gray-500 m-0 font-sm p-2 bg-primary backdrop-blur-xl z-30 lg:rounded-full lg:mt-5 lg:mx-6 lg:py-2 lg:border-1 lg:shadow-md lg:shadow-pink-500/50"
+      className="fixed top-0 left-0 right-0 flex bg-[171717]/70 lg:bg-transparent justify-center border-gray-500 m-0 font-sm p-2 bg-primary backdrop-blur-xl z-30 lg:rounded-full lg:mt-5 lg:mx-6 lg:py-2 lg:border-1 lg:shadow-md lg:shadow-pink-500/30"
     >
       <nav className="flex justify-between items-center gap-5 w-full max-w-7xl px-2 md:px-6 h-[3.5rem] mx-auto">
         <div className="flex gap-0 pl-2">
@@ -52,17 +52,17 @@ const Navbar = () => {
           />
           <h1
             style={{ fontFamily: "quantico, sans-serif" }}
-            className="font-2xl text-white inline-block mt-3"
+            className="font-xl text-white inline-block mt-1"
           >
             evra
           </h1>
         </div>
 
         {/* Desktop Menu */}
-        <ul className="hidden text-lg text-bold text-center md:flex gap-8 text-gray-200">
+        <ul className="hidden text-md text-bold text-center md:flex gap-8 text-gray-200">
           <li>
             <MotionLink
-              href="/home"
+              href="/dashboard"
               className="hover:text-white transition-transform duration-200"
               whileHover={{ y: -4 }}
               layout
@@ -73,24 +73,24 @@ const Navbar = () => {
           </li>
           <li>
             <MotionLink
-              href="/connect"
+              href="#about"
+              className="hover:text-white transition-transform duration-200"
+              whileHover={{ y: -4 }}
+              layout
+            >
+              <UsersRound className="inline-block mr-3 mb-1" size={18} />
+              About us
+            </MotionLink>
+          </li>
+          <li>
+            <MotionLink
+              href="#explore"
               className="hover:text-white transition-transform duration-200"
               whileHover={{ y: -4 }}
               layout
             >
               <Telescope className="inline-block mr-3 mb-1" size={18} />
               Explore
-            </MotionLink>
-          </li>
-          <li>
-            <MotionLink
-              href="/connect"
-              className="hover:text-white transition-transform duration-200"
-              whileHover={{ y: -4 }}
-              layout
-            >
-              <UsersRound className="inline-block mr-3 mb-1" size={18} />
-              Community
             </MotionLink>
           </li>
         </ul>
@@ -101,15 +101,16 @@ const Navbar = () => {
             onClick={() => {
               window.location.href = "/connect";
             }}
-            className="bg-pink-500 text-[16px] text-white px-4 cursor-pointer py-2 rounded-full flex items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300"
+            className="bg-pink-500 text-sm text-bold text-white px-4 cursor-pointer py-2 rounded-full flex items-center border-2 border-pink-500 gap-2 hover:bg-[#101010] hover:border-white transition duration-300"
             whileHover="hover"
+            style={{ fontFamily: "quantico, sans-serif" }}
             variants={{
               hover: { scale: 1.0 },
             }}
             layout
           >
             <Wallet className="inline mb-0" size={20} />
-            Connect App
+            Connect app
             <motion.span
               className="text-lg font-extralight"
               variants={{
@@ -124,7 +125,6 @@ const Navbar = () => {
           </motion.button>
         </div>
 
-        {/* Mobile Menu Button */}
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -179,20 +179,20 @@ const Navbar = () => {
             </li>
             <li>
               <Link
-                href="/dashboard"
+                href="#about"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl transition-colors"
               >
-                Explore
-                <Telescope className="inline-block ml-0.5" size={24} />
+                About
+                <UsersRound className="inline-block ml-1" size={24} />
               </Link>
             </li>
             <li>
               <Link
-                href="/connect"
+                href="#explore"
                 className="text-2xl text-black border-b-2 border-black hover:text-3xl  transition-colors"
               >
-                Community
-                <UsersRound className="inline-block ml-0.5" size={24} />
+                Explore
+                <Telescope className="inline-block ml-0.5" size={24} />
               </Link>
             </li>
             <li></li>
@@ -200,6 +200,7 @@ const Navbar = () => {
           {/* Connect button for mobile */}
           <div className="md:hidden ml-2 mb-2 lg:hidden flex items-center gap-6">
             <motion.button
+              style={{ fontFamily: "quantico, sans-serif" }}
               className="text-white px-4 cursor-pointer py-2 rounded-full flex items-center gap-2 hover:bg-pink-500 bg-[#101010] transition duration-300"
               whileHover="hover"
               variants={{
@@ -211,7 +212,7 @@ const Navbar = () => {
               layout
             >
               <Wallet className="inline mb-0" size={20} />
-              Connect
+              Connect app
               <motion.span
                 className="text-lg font-extralight"
                 variants={{

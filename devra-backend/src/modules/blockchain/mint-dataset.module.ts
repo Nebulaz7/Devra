@@ -4,16 +4,10 @@ import { MintDatasetController } from './mint-dataset.controller';
 import { MintDatasetService } from './mint-dataset.service';
 import { DatasetRecordService } from '../encryption/dataset-record.service';
 import { EncryptService } from '../encryption/encrypt.service';
-import { RsaService } from '../encryption/rsa/rsa.service';
 
 @Module({
   imports: [ConfigModule.forRoot()],
   controllers: [MintDatasetController],
-  providers: [
-    MintDatasetService, 
-    DatasetRecordService, 
-    EncryptService, 
-    RsaService
-  ],
+  providers: [MintDatasetService, DatasetRecordService, EncryptService],
 })
 export class MintModule {}

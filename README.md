@@ -1,470 +1,569 @@
-# Hackathon MVP Dev Plan
+# Devra - Decentralized Data Marketplace
 
-## Decentralized Dataset Marketplace with AI Verification
+![Devra Banner](https://img.shields.io/badge/Blockchain-Polkadot-E6007A?style=for-the-badge&logo=polkadot) ![Next.js](https://img.shields.io/badge/Next.js-15.5.5-black?style=for-the-badge&logo=next.js) ![Solidity](https://img.shields.io/badge/Solidity-0.8.28-363636?style=for-the-badge&logo=solidity) ![NestJS](https://img.shields.io/badge/NestJS-11.0.1-E0234E?style=for-the-badge&logo=nestjs)
 
----
+> A trustless, AI-verified marketplace for trading datasets as NFTs on Polkadot's Westend Asset Hub
 
-## Table of Contents
+## 📋 Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [High-Level Application Flow](#high-level-application-flow)
-3. [Core Architecture](#core-architecture)
-4. [Task 0: API Contract (CRITICAL)](#task-0-api-contract-critical)
-5. [Phase 1: Foundation & Setup](#phase-1-foundation--setup)
-6. [Phase 2: Core Feature Implementation](#phase-2-core-feature-implementation)
-7. [Phase 3: Integration & MVP Polish](#phase-3-integration--mvp-polish)
-8. [Team Responsibilities](#team-responsibilities)
-9. [Success Metrics](#success-metrics)
-10. [Critical Notes](#critical-notes)
-11. [Resources & Links](#resources--links)
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Smart Contracts](#smart-contracts)
+- [Backend Services](#backend-services)
+- [Frontend Application](#frontend-application)
+- [AI Verification](#ai-verification)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
 
----
+## 🌟 Overview
 
-## Project Overview
+Devra revolutionizes data trading by combining blockchain technology, AI verification, and decentralized storage to create a transparent marketplace where:
 
-Building a decentralized marketplace where:
+- **Datasets are NFTs**: Immutable ownership proof on Polkadot
+- **AI Quality Assurance**: Automated verification before minting
+- **Encrypted Storage**: IPFS-based decentralized storage with encryption
+- **Trustless Trading**: Smart contract-powered peer-to-peer transactions
+- **Fair Pricing**: Dynamic marketplace with transparent price discovery
 
-- **Data owners** can encrypt and list datasets as NFTs
-- **AI models** verify data quality before the NFT is finalized
-- **Buyers** can purchase NFTs and receive decryption keys
-- All data is stored on **IPFS via Crust Network**
-- All assets are managed on **Polkadot's Asset Hub** using its native pallets, eliminating the need for custom smart contracts
+### Key Features
 
-**Key Success Factor**: Parallel execution with clear API contracts between teams.
+✨ **NFT-Based Ownership** - Every dataset is an ERC-721 token  
+🤖 **AI Verification** - Quality scoring and authenticity checks  
+🔒 **End-to-End Encryption** - RSA encryption before IPFS upload  
+💎 **Integrated Marketplace** - List, buy, and cancel listings on-chain  
+📊 **Multi-Format Support** - CSV, JSON, ZIP, Parquet, Excel  
+🎨 **Modern UI/UX** - Cyberpunk-inspired, responsive design
 
----
-
-## High-Level Application Flow
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                       DATA OWNER                        │
-└─────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 1. Uploads Dataset to UI │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 2. Triggers AI Verification via Backend │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │     [AI Model API]       │
-                │ 3. Analyzes & Returns Score │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 4. Backend Encrypts Dataset │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 5. Stores Encrypted File on IPFS │
-                │    (via Crust Network)   │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 6. Interacts with Asset Hub Pallets to Mint NFT │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 7. Updates NFT Metadata with AI Score │
-                │    (using nfts.setAttribute) │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 8. NFT is Minted & Listed │
-                └──────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────┐
-│                         BUYER                           │
-└─────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 9. Browses Marketplace & │
-                │    Purchases NFT         │
-                └──────────────────────────┘
-                               │
-                               ▼
-                ┌──────────────────────────┐
-                │ 10. Receives Decryption Key │
-                └──────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        Frontend (Next.js)                    │
+│  • React 19 + Server Components                             │
+│  • Wagmi v2 + Viem (Web3)                                   │
+│  • Framer Motion (Animations)                               │
+│  • Tailwind CSS v4                                          │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+                 │ RPC Calls (Viem)
+                 │
+┌────────────────▼────────────────────────────────────────────┐
+│              Smart Contract (Solidity 0.8.28)               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  DatasetNFT.sol                                      │   │
+│  │  • ERC-721 Implementation                            │   │
+│  │  • mint(cid, score)                                  │   │
+│  │  • list(tokenId, price)                              │   │
+│  │  • buy(tokenId)                                      │   │
+│  │  • cancelListing(tokenId)                            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                  Deployed on Westend Asset Hub              │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+                 │ Events & Queries
+                 │
+┌────────────────▼────────────────────────────────────────────┐
+│                  Backend (NestJS + Python)                   │
+│  ┌─────────────────────┐       ┌─────────────────────┐      │
+│  │  NestJS API Server  │       │  AI Verifier (FastAPI)│     │
+│  │  • Upload Handler   │◄─────►│  • Quality Analysis  │      │
+│  │  • Encryption Svc   │       │  • Fraud Detection   │      │
+│  │  • IPFS Integration │       │  • Scoring Engine    │      │
+│  │  • BullMQ Jobs      │       │  • ML Models         │      │
+│  └──────────┬──────────┘       └─────────────────────┘      │
+│             │                                                │
+│  ┌──────────▼──────────┐       ┌─────────────────────┐      │
+│  │   PostgreSQL        │       │   Redis (BullMQ)    │      │
+│  │   (Prisma ORM)      │       │   (Job Queue)       │      │
+│  └─────────────────────┘       └─────────────────────┘      │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+                 │ Upload Encrypted Data
+                 │
+┌────────────────▼────────────────────────────────────────────┐
+│                     IPFS (Decentralized Storage)             │
+│  • Content-Addressed Storage (CIDs)                         │
+│  • Encrypted Dataset Files                                  │
+│  • Metadata & Verification Reports                          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
+### Data Flow
 
-## Core Architecture
+1. **Upload Flow**
 
-### Technology Stack
+   ```
+   User → Frontend → Backend → AI Verifier → Encryption → IPFS → Get CID
+                                                                    ↓
+   User ← Frontend ← Smart Contract ← Mint NFT ← Return CID ←─────┘
+   ```
 
-- **Blockchain**: Polkadot Asset Hub (Westend Asset Hub for testing) using its native pallets (nfts, Utility, Assets)
-- **Storage**: IPFS via Crust Network
-- **Frontend**: React/Next.js with Polkadot-API (PAPI)
-- **Backend**: Node.js/Express or NestJS
-- **AI/ML**: Containerized model with Flask/FastAPI API
+2. **Purchase Flow**
 
----
+   ```
+   Buyer → Frontend → Smart Contract.buy() → Transfer Funds → Transfer NFT
+                          ↓
+   Buyer ← IPFS ← Decrypt ← Access Grant ← Event Listener
+   ```
 
-## Task 0: API Contract (CRITICAL)
+3. **Listing Flow**
+   ```
+   Owner → Frontend → Smart Contract.list() → Set Price → Emit ListingCreated
+   ```
 
-**Duration**: First Hour  
-**Participants**: All Team Leads
+## 🛠️ Tech Stack
 
-Before any development begins, define the complete data structures and API endpoints. This is the foundation for parallel work.
+### Frontend
 
-### Dataset NFT Structure (on Asset Hub)
+| Technology         | Version  | Purpose                           |
+| ------------------ | -------- | --------------------------------- |
+| **Next.js**        | 15.5.5   | React framework with App Router   |
+| **React**          | 19.1.0   | UI library with Server Components |
+| **TypeScript**     | 5.x      | Type-safe development             |
+| **Tailwind CSS**   | 4.0      | Utility-first styling             |
+| **Wagmi**          | 2.19.2   | React hooks for Ethereum          |
+| **Viem**           | 2.38.6   | TypeScript Ethereum library       |
+| **Framer Motion**  | 12.23.24 | Animation library                 |
+| **TanStack Query** | 5.90.7   | Data fetching & caching           |
+| **Lucide React**   | 0.545.0  | Icon library                      |
 
-The `nfts` pallet on Asset Hub will manage this data. The backend will be responsible for setting these attributes.
+### Backend (NestJS)
 
-```javascript
-{
-  collectionId: uint,
-  itemId: uint,
-  attributes: {
-    name: string,
-    description: string,
-    ipfsCid: string,          // For encrypted data
-    price: uint,              // Can be in DOT or a sufficient asset like USDC
-    aiQualityScore: uint8,    // 0-100
-    verificationStatus: string // PENDING, VERIFIED, FAILED
-  },
-  owner: address
+| Technology     | Version       | Purpose                 |
+| -------------- | ------------- | ----------------------- |
+| **NestJS**     | 11.0.1        | Node.js framework       |
+| **Prisma**     | 6.17.1        | ORM for PostgreSQL      |
+| **BullMQ**     | 5.61.0        | Job queue with Redis    |
+| **PostgreSQL** | 8.x           | Relational database     |
+| **Redis**      | IORedis 5.8.1 | In-memory cache & queue |
+| **Axios**      | 1.12.2        | HTTP client             |
+
+### AI Verification (Python)
+
+| Technology                | Version | Purpose                        |
+| ------------------------- | ------- | ------------------------------ |
+| **FastAPI**               | Latest  | High-performance API framework |
+| **PyTorch**               | Latest  | Deep learning framework        |
+| **Transformers**          | Latest  | NLP models (BERT, DistilBERT)  |
+| **Sentence-Transformers** | Latest  | Semantic similarity            |
+| **Pandas**                | Latest  | Data analysis                  |
+| **Scikit-learn**          | Latest  | ML utilities                   |
+| **Pillow**                | Latest  | Image processing               |
+
+### Blockchain
+
+| Technology    | Version     | Purpose                    |
+| ------------- | ----------- | -------------------------- |
+| **Solidity**  | 0.8.28      | Smart contract language    |
+| **Polkadot**  | Asset Hub   | EVM-compatible blockchain  |
+| **IPFS**      | HTTP Client | Decentralized storage      |
+| **Ethers.js** | 6.15.0      | Ethereum library (scripts) |
+
+## 📁 Project Structure
+
+```
+Devra/
+├── devra-frontend/           # Next.js 15 Frontend
+│   ├── app/
+│   │   ├── components/       # Reusable UI components
+│   │   │   ├── Hero.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   └── About.tsx
+│   │   ├── animations/       # Framer Motion animations
+│   │   ├── connect/          # Wallet connection page
+│   │   ├── marketplace/      # Dataset marketplace
+│   │   ├── datasets/         # User datasets management
+│   │   ├── dashboard/        # User dashboard
+│   │   └── providers.tsx     # Wagmi & React Query setup
+│   ├── lib/
+│   │   ├── wagmi.ts          # Web3 configuration
+│   │   └── contracts/        # Contract interaction hooks
+│   │       ├── useDataset.ts # NFT contract hooks
+│   │       └── DatasetNFT.ts # Contract ABI & config
+│   ├── hooks/
+│   │   ├── useWallet.ts      # Wallet connection hook
+│   │   └── useContract.ts    # Generic contract hook
+│   └── package.json
+│
+├── devra-backend/            # NestJS Backend
+│   ├── src/
+│   │   ├── modules/
+│   │   │   ├── upload/       # File upload handling
+│   │   │   ├── encryption/   # RSA encryption service
+│   │   │   ├── verification/ # AI verification integration
+│   │   │   ├── crust/        # IPFS/Crust integration
+│   │   │   └── prisma/       # Database service
+│   │   ├── common/
+│   │   │   └── config/       # Redis & Vault config
+│   │   └── main.ts
+│   ├── prisma/
+│   │   └── schema.prisma     # Database schema
+│   └── package.json
+│
+├── devra-ai_verifier/        # Python AI Service
+│   ├── main.py               # FastAPI application
+│   ├── requirements.txt      # Python dependencies
+│   └── Procfile              # Deployment config
+│
+├── devra-contracts/          # Solidity Smart Contracts
+│   ├── contracts/
+│   │   └── DatasetNFT.sol    # Main NFT contract
+│   ├── scripts/              # Deployment scripts
+│   │   ├── deploy_with_ethers.ts
+│   │   └── deploy_with_web3.ts
+│   └── tests/                # Contract tests
+│
+└── README.md                 # This file
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** 20.x or higher
+- **npm** or **yarn**
+- **Python** 3.10+
+- **PostgreSQL** 14+
+- **Redis** 7+
+- **MetaMask** or **Talisman** wallet
+
+### Installation
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Nebulaz7/Devra.git
+cd Devra
+```
+
+#### 2. Frontend Setup
+
+```bash
+cd devra-frontend
+npm install
+cp .env.example .env.local
+# Configure your environment variables
+npm run dev
+# Open http://localhost:3000
+```
+
+**Environment Variables (.env.local)**
+
+```env
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x25e485fc5492ce1c65cfd438de6d64eb62335cd7
+NEXT_PUBLIC_CHAIN_ID=420420421
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+```
+
+#### 3. Backend Setup
+
+```bash
+cd devra-backend
+npm install
+cp .env.example .env
+# Configure database and Redis
+npx prisma migrate dev
+npm run start:dev
+# Backend runs on http://localhost:3000
+```
+
+**Environment Variables (.env)**
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/devra"
+REDIS_HOST=localhost
+REDIS_PORT=6379
+AI_VERIFIER_URL=http://localhost:5000
+IPFS_GATEWAY=https://ipfs.io
+```
+
+#### 4. AI Verifier Setup
+
+```bash
+cd devra-ai_verifier
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 5000
+# AI service runs on http://localhost:5000
+```
+
+#### 5. Database Migration
+
+```bash
+cd devra-backend
+npx prisma migrate dev --name init
+npx prisma generate
+```
+
+## 📜 Smart Contracts
+
+### DatasetNFT.sol
+
+**Deployed Address:** `0x25e485fc5492ce1c65cfd438de6d64eb62335cd7`  
+**Network:** Westend Asset Hub (Chain ID: 420420421)  
+**Explorer:** [Blockscout](https://westend-asset-hub-eth-explorer.polkadot.io/)
+
+#### Core Functions
+
+```solidity
+// Mint a new dataset NFT
+function mint(bytes32 cid, uint8 score) external returns (uint256)
+
+// List dataset for sale
+function list(uint256 tokenId, uint96 price) external
+
+// Purchase a listed dataset
+function buy(uint256 tokenId) external payable
+
+// Cancel listing
+function cancelListing(uint256 tokenId) external
+
+// Get dataset info
+function datasetInfo(uint256 tokenId) external view returns (Data memory)
+```
+
+#### Events
+
+```solidity
+event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+event ListingCreated(uint256 indexed tokenId, uint96 price)
+event ListingCancelled(uint256 indexed tokenId)
+event Sold(uint256 indexed tokenId, address indexed buyer, uint96 price)
+```
+
+### Deployment
+
+```bash
+cd devra-contracts
+npm install
+# Deploy using Remix IDE or:
+npx hardhat run scripts/deploy_with_ethers.ts --network westend
+```
+
+## 🔧 Backend Services
+
+### Upload Service
+
+Handles multipart file uploads with validation.
+
+```typescript
+@Post('upload')
+@UseInterceptors(FileInterceptor('file'))
+async uploadDataset(
+  @UploadedFile() file: Express.Multer.File,
+  @Body() dto: CreateDatasetDto
+) {
+  // 1. Validate file
+  // 2. Send to AI verifier
+  // 3. Encrypt file
+  // 4. Upload to IPFS
+  // 5. Return CID
 }
 ```
 
-### Backend API Endpoints
+### Encryption Service
+
+RSA-based encryption for dataset security.
+
+```typescript
+async encryptFile(buffer: Buffer, publicKey: string): Promise<Buffer> {
+  // AES-256-GCM encryption with RSA-wrapped keys
+}
+```
+
+### Queue Service (BullMQ)
+
+Background job processing for uploads.
+
+```typescript
+@Process('upload-dataset')
+async processUpload(job: Job) {
+  // 1. Verify with AI
+  // 2. Encrypt data
+  // 3. Upload to IPFS
+  // 4. Update database
+}
+```
+
+## 🎨 Frontend Application
+
+### Wallet Integration
+
+```typescript
+// lib/wagmi.ts
+import { createConfig, http } from "wagmi";
+import { westendAssetHub } from "./chains";
+import { metaMask } from "@wagmi/connectors";
+
+export const config = createConfig({
+  chains: [westendAssetHub],
+  connectors: [metaMask()],
+  transports: {
+    [westendAssetHub.id]: http(),
+  },
+});
+```
+
+### Contract Interaction Hooks
+
+```typescript
+// lib/contracts/useDataset.ts
+export function useMintDataset() {
+  const { writeContractAsync } = useWriteContract();
+
+  const mint = async (cid: string) => {
+    const hash = await writeContractAsync({
+      address: CONTRACT_ADDRESS,
+      abi: DatasetNFTABI,
+      functionName: "mint",
+      args: [cid, 85], // CID and quality score
+    });
+    return hash;
+  };
+
+  return { mint };
+}
+```
+
+### Components
+
+- **Hero.tsx** - Landing page hero section with 3D animations
+- **Navbar.tsx** - Navigation with wallet connection
+- **Marketplace.tsx** - Dataset browsing and purchasing
+- **Datasets.tsx** - User's owned datasets management
+- **MintDatasetModal.tsx** - Multi-step minting workflow
+
+## 🤖 AI Verification
+
+### Verification Pipeline
+
+```python
+@app.post("/verify")
+async def verify_dataset(file: UploadFile):
+    # 1. Extract and parse data
+    data = extract_data(file)
+
+    # 2. Quality metrics
+    completeness = calculate_completeness(data)
+    consistency = check_consistency(data)
+
+    # 3. Fraud detection
+    duplicates = detect_duplicates(data)
+    anomalies = find_anomalies(data)
+
+    # 4. AI scoring
+    score = ml_quality_score(data)
 
-| Method | Endpoint        | Description                      | Request Body                         | Response                                     |
-| ------ | --------------- | -------------------------------- | ------------------------------------ | -------------------------------------------- |
-| POST   | `/list`         | Submit new dataset for listing   | `{ name, description, price, file }` | `{ success, collectionId, itemId, ipfsCid }` |
-| GET    | `/datasets`     | Fetch all listed datasets        | None                                 | `{ datasets: [...] }`                        |
-| GET    | `/dataset/{id}` | Get details for specific dataset | None                                 | `{ dataset: {...} }`                         |
+    return {
+        "score": score,
+        "quality_metrics": {...},
+        "fraud_indicators": {...}
+    }
+```
 
-### AI Model API Endpoint
+### Supported Models
 
-| Method | Endpoint  | Description            | Request Body                     | Response                           |
-| ------ | --------- | ---------------------- | -------------------------------- | ---------------------------------- |
-| POST   | `/verify` | Verify dataset quality | `{ ipfsCid, tempDecryptionKey }` | `{ score: uint8, status: string }` |
+- **BERT** - Text quality analysis
+- **DistilBERT** - Fast text classification
+- **ResNet18** - Image dataset verification
+- **Sentence-BERT** - Semantic similarity
 
----
+## 🌐 Deployment
 
-## Phase 1: Foundation & Setup
+### Frontend (Vercel)
 
-**Goal**: Get the basic skeleton of each component running
+```bash
+cd devra-frontend
+vercel deploy --prod
+```
 
-### Blockchain Team
+**Build Configuration:**
 
-#### 1. Setup Environment
+```json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
+}
+```
 
-- Install Node.js
-- Set up a project with Polkadot-API (PAPI)
-- This will be used to construct and send transactions (extrinsics)
+### Backend (Railway/Heroku)
 
-#### 2. Learn Pallet Interactions
+```bash
+cd devra-backend
+# Set environment variables
+railway up
+```
 
-Familiarize with the key extrinsics on Asset Hub using the Polkadot-JS UI:
+### AI Verifier (Render)
 
-- `nfts.create`, `nfts.mint`, `nfts.setAttribute`, `nfts.setPrice`
-- `utility.batchAll` for atomic swaps
-- `assets.transfer` for payments in other tokens (e.g., USDC)
+```yaml
+# render.yaml
+services:
+  - type: web
+    name: devra-ai-verifier
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+```
 
-#### 3. Get Testnet Funds
+### Database (PostgreSQL)
 
-- Create a wallet with Polkadot{.js} extension
-- Connect to Westend Asset Hub (the testnet for Asset Hub)
-- Use a faucet to get WND (Westies) for transaction fees
+Use managed services:
 
-### Frontend Team
+- **Supabase** (Recommended)
+- **Railway**
+- **Render**
 
-#### 1. Setup Environment
+## 🧪 Testing
 
-- Create new React/Next.js app
-- Install Polkadot-API (PAPI) for wallet interaction
+### Frontend Tests
 
-#### 2. Build UI Mockups
+```bash
+cd devra-frontend
+npm run test
+```
 
-- Marketplace gallery page
-- Sell/List dataset page
-- Dataset detail page
-- Focus on layout structure
+### Backend Tests
 
-#### 3. Wallet Connection
+```bash
+cd devra-backend
+npm run test
+npm run test:e2e
+```
 
-- Implement "Connect Wallet" button using the Polkadot{.js} extension
-- Display user's wallet address
+### Contract Tests
 
-### AI/ML Team
+```bash
+cd devra-contracts
+npm run test
+```
 
-#### 1. Containerize Model
+## 🤝 Contributing
 
-- Wrap AI model in Docker container
-- Create simple API endpoint (Flask/FastAPI)
-- Return placeholder score initially
+We welcome contributions! Please follow these steps:
 
-#### 2. Test Local API
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- Verify request/response flow
-- Document exact input/output format
+### Code Style
 
-### Backend Team
+- **Frontend:** ESLint + Prettier
+- **Backend:** NestJS style guide
+- **Contracts:** Solidity style guide
 
-#### 1. Setup Environment
+## 🔗 Links
 
-- Create Node.js/Express server (or NestJS for more structure)
-- Define placeholder routes for all endpoints
+- **Live Demo:** [https://devra.vercel.app](https://devra.vercel.app)
+- **Contract Explorer:** [View on Blockscout](https://westend-asset-hub-eth-explorer.polkadot.io/address/0x25e485fc5492ce1c65cfd438de6d64eb62335cd7)
 
-#### 2. Decentralized Storage Setup
-
-- Set up Crust Network account
-- Obtain API keys for IPFS W3Auth Gateway
-- Test basic upload/retrieve operations
-
----
-
-## Phase 2: Core Feature Implementation
-
-**Goal**: Build core logic for each component independently
-
-### Blockchain Team
-
-#### 1. Construct Transactions
-
-Write scripts using Polkadot-API (PAPI) to create transactions for:
-
-- `nfts.create` (to create a collection for a new seller)
-- `nfts.mint` (to mint the dataset NFT)
-- `nfts.setAttribute` (to add metadata like IPFS CID and AI score)
-- `nfts.setPrice` (to list the NFT for sale)
-
-#### 2. Develop Atomic Swap Logic
-
-Construct a `utility.batchAll` transaction that combines:
-
-- `assets.transfer` (for payment, e.g., USDC)
-- `nfts.buyItem` (to transfer the NFT)
-
-This ensures a buyer only pays if they receive the NFT.
-
-#### 3. Provide Helper Functions
-
-Create a simple library of functions for the Backend Team to call:
-
-- `mintNft(metadata)`
-- `buyNft(nftId)`
-- `setNftAttribute(nftId, key, value)`
-
-### Frontend Team
-
-#### 1. Implement Listing Form
-
-- Build seller input form (name, description, price)
-- Add file upload logic
-- Wire to backend API
-
-#### 2. Build Marketplace View
-
-- Fetch data from `GET /datasets`
-- Display datasets in grid/list format
-- Create dataset detail page
-
-### AI/ML Team
-
-#### 1. Refine AI Model
-
-- Fine-tune for hackathon demo
-- Process sample datasets
-- Return meaningful quality scores
-
-#### 2. Finalize API
-
-- Implement `POST /verify` endpoint
-- Receive IPFS CID
-- Fetch data, analyze, return score
-
-### Backend Team
-
-#### 1. Setup Environment
-
-- Initialize a NestJS project with a modular structure (dataset, encryption, ipfs, validation, deduplication)
-- Configure `.env` file for Crust IPFS credentials and other secrets
-- Install core dependencies:
-  ```bash
-  npm install @nestjs/platform-express axios crypto multer dotenv
-  ```
-- Set up a temporary `/tmp` directory for encrypted files
-
-#### 2. Dataset Upload Flow
-
-- Create `DatasetController` with `/datasets/upload` endpoint
-- Accept dataset file + metadata using Multer
-- Validate request inputs (ensure file and metadata are present)
-- Log file details (e.g., name, size, uploader) for tracking
-
-#### 3. Encryption Layer (Security Core)
-
-- Implement `EncryptionService` using AES-256-CBC algorithm
-- Generate a unique encryption key and IV for each dataset
-- Encrypt dataset buffer and save the encrypted file temporarily in `/tmp`
-- Return encryption metadata (key + iv) securely to the caller
-- Keep encryption logic modular for future algorithm upgrades
-
-#### 4. Deduplication System
-
-- Compute a SHA-256 hash of each uploaded dataset before encryption
-- Check existing records in the database for duplicate hashes
-- Reject duplicate uploads to prevent spam or redundant storage
-- Continue encryption + upload only if dataset is unique
-
-#### 5. Decentralized Storage Integration
-
-- Implement `IpfsService` to handle file uploads to Crust Network (IPFS)
-- Upload the encrypted dataset through the Crust W3Auth gateway
-- Retrieve and verify the IPFS CID after upload
-- Store CID, file hash, filename, uploader, and timestamp in the database
-
-#### 6. Dataset Metadata & Persistence
-
-Create Dataset entity/model (using Prisma or TypeORM). Store dataset metadata fields:
-
-- `filename`
-- `hash`
-- `cid`
-- `size`
-- `uploader`
-- `timestamp`
-
-Keep AES key and IV stored securely (not publicly exposed). Return a success response with the CID and relevant dataset info.
-
-#### 7. AI Validation Integration
-
-- Connect the backend to the AI/ML API (FastAPI container)
-- Send dataset CID and temporary decryption key for analysis
-- Receive validation results (e.g., quality score, status, category)
-- Include the AI evaluation results in the final response or store them in the DB
-
----
-
-## Phase 3: Integration & MVP Polish
-
-**Goal**: Connect all components and create smooth end-to-end flow
-
-### Blockchain Team
-
-#### Support & Debug
-
-- Assist Frontend/Backend with transaction construction and signing
-- Verify transactions on the Westend Asset Hub block explorer
-- Help debug any on-chain errors
-
-### Frontend Team
-
-#### 1. Connect to Backend
-
-- Wire "List Dataset" form to `POST /list`
-- Ensure marketplace displays backend data correctly
-
-#### 2. Connect to Blockchain
-
-- Integrate Polkadot-API (PAPI) to sign and send the `utility.batchAll` transaction when a user clicks "Buy"
-- Handle transaction signing via the user's Polkadot{.js} wallet
-
-#### 3. Polish UI/UX
-
-- Add loading spinners
-- Success/error notifications
-- Responsive design touches
-
-### AI/ML Team
-
-#### Support & Debug
-
-- Work with Backend on API integration
-- Monitor AI server logs
-- Optimize response times
-
-### Backend Team
-
-#### 1. Finalize Integrations
-
-- Complete full sequence: Frontend → Backend → IPFS → AI → Blockchain (Asset Hub)
-- Ensure all handoffs work smoothly
-
-#### 2. Error Handling
-
-- Implement robust error handling
-- Handle AI model failures
-- Handle blockchain transaction errors
-- Provide meaningful error messages to frontend
-
----
-
-## Team Responsibilities
-
-### Blockchain Team
-
-- Constructing and managing transactions with Asset Hub pallets
-- Testing interactions on the testnet
-- Documenting transaction structures for the backend team
-
-### Frontend Team
-
-- User interface and experience
-- Wallet integration (Polkadot{.js})
-- API consumption and state management
-
-### AI/ML Team
-
-- Dataset quality verification
-- API endpoint for verification service
-- Model optimization and containerization
-
-### Backend Team
-
-- API development and orchestration
-- IPFS/Crust integration
-- Bridge between frontend, AI, and blockchain (Asset Hub)
-
----
-
-## Success Metrics
-
-- [ ] User can upload and list a dataset
-- [ ] Dataset is stored on IPFS via Crust
-- [ ] AI model verifies and scores the dataset
-- [ ] NFT is minted on Asset Hub with AI score as metadata
-- [ ] Buyer can purchase NFT using an atomic swap (`utility.batchAll`)
-- [ ] Buyer receives decryption key
-
----
-
-## Critical Notes
-
-⚠️ **Communication is Key**: All teams must stay in sync. Use a shared channel (Discord/Slack) for real-time updates.
-
-⚠️ **Task 0 is Mandatory**: Do not skip the API contract definition. This prevents integration hell later.
-
-⚠️ **Test Early, Test Often**: Each team should test their component independently before integration.
-
----
-
-## Resources & Links
-
-- **Polkadot Asset Hub Wiki**: https://wiki.polkadot.network/docs/learn-assets
-- **NFTs Pallet Guide**: https://wiki.polkadot.network/docs/learn-nft-pallets
-- **Crust Network**: https://wiki.crust.network/
-- **Polkadot-API (PAPI) Docs**: https://docs.polkadot.com/develop/toolkit/api-libraries/papi/
-- **Polkadot{.js} UI** (for testing): https://polkadot.js.org/apps/
-
----
-
-_Good luck! Build fast, ship faster._ 🚀
+**Built with ❤️ by the Devra Team**  
+_Making data trading fair, transparent, and decentralized_

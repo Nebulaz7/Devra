@@ -66,14 +66,14 @@ export class UploadController {
     const verificationResult =
       await this.verificationService.verifyDataset(file);
 
-    const fileEncryptionResult = await this.encryptService.encryptDataset(file);
+    const fileEncryptionResult = this.encryptService.encryptDataset(file);
 
     const datasetRecord = await this.datasetRecordService.createRecord(
       createDatasetDto,
       verificationResult,
       {
         hash,
-        aesKeyEncrypted: fileEncryptionResult.encryptedKey,
+        aesKeyEncrypted: fileEncryptionResult.aesKey,
         vaultKeyRef: 'private-key',
         iv: fileEncryptionResult.iv,
         authTag: fileEncryptionResult.authTag,
