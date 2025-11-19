@@ -65,21 +65,17 @@ export class CrustService {
       throw new Error('CRUST_GATEWAY_URL environment variable is not defined');
     }
 
-    this.logger.debug(`🚀 Uploading ${filePath} to Crust...`);
-
     if (!fs.existsSync(filePath)) {
       this.logger.error(`File not found at path: ${filePath}`);
       throw new Error(`File not found at path: ${filePath}`);
     }
 
     const authHeader = await this.generateAuthHeader();
-    this.logger.debug('🔑 Auth header generated successfully');
 
     const formData = new FormData();
     formData.append('file', fs.createReadStream(filePath));
 
     try {
-      this.logger.debug(`Sending request to ${this.GATEWAY_URL}`);
       const response = await fetch(this.GATEWAY_URL, {
         method: 'POST',
         headers: {
@@ -103,9 +99,6 @@ export class CrustService {
 
       const { Hash, Name, Size } = data;
       const gatewayUrl = `https://gw.crustfiles.app/ipfs/${Hash}`;
-
-      this.logger.log(`✅ Uploaded successfully: ${Name || filePath}`);
-      this.logger.debug(`🔗 Access via: ${gatewayUrl}`);
 
       console.log('CID', Hash);
 

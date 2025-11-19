@@ -58,9 +58,6 @@ export class DatasetRecordService {
 
   async markAsUploaded(id: string, cid: string) {
     const ipfsUrl = `https://gw.crustfiles.app/ipfs/${cid}`;
-    console.log(
-      `🛰️  Dataset uploaded to Crust with CID: ${cid}, IPFS URL: ${ipfsUrl}`,
-    );
 
     const updated = await this.prisma.dataset.update({
       where: { id },
@@ -101,7 +98,7 @@ export class DatasetRecordService {
 
   async findByTokenId(tokenId: number) {
     return this.prisma.dataset.findUnique({
-      where: { tokenId } 
+      where: { tokenId },
     });
   }
 

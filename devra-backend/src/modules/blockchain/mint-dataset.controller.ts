@@ -38,9 +38,6 @@ export class MintDatasetController {
     @Body() body: PrepareMintDto,
   ) {
     try {
-      this.logger.log(`Preparing mint for dataset: ${datasetId}`);
-      this.logger.log(`Request body: ${JSON.stringify(body)}`);
-      this.logger.log(`Owner address: "${body.owner}"`);
 
       if (!body || typeof body !== 'object') {
         throw new HttpException(
@@ -54,7 +51,7 @@ export class MintDatasetController {
         typeof body.owner !== 'string' ||
         body.owner.trim() === ''
       ) {
-        this.logger.error(`Invalid owner address received: "${body.owner}"`);
+        this.logger.error(`Invalid owner address received`);
         throw new HttpException(
           'Owner address is required and must be a valid non-empty string',
           HttpStatus.BAD_REQUEST,
@@ -62,20 +59,19 @@ export class MintDatasetController {
       }
 
       const ownerAddress = body.owner.trim();
-      this.logger.log(`Cleaned owner address: "${ownerAddress}"`);
 
       const dataset = await this.datasetRecordService.findById(datasetId);
 
       if (!dataset) {
-        this.logger.error(`Dataset not found: ${datasetId}`);
+        this.logger.error(`Dataset not found`);
         throw new HttpException('Dataset not found', HttpStatus.NOT_FOUND);
       }
 
-      this.logger.log(`Dataset found with status: ${dataset.status}`);
+      this.logger.log(`Dataset found with status`);
 
       if (dataset.status !== 'uploaded') {
         throw new HttpException(
-          `Dataset must be uploaded before minting. Current status: ${dataset.status}`,
+          `Dataset must be uploaded before minting. Current status`,
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -90,7 +86,7 @@ export class MintDatasetController {
         mintData.tokenURI,
       );
 
-      this.logger.log(`Mint prepared successfully for dataset: ${datasetId}`);
+      this.logger.log(`Mint prepared successfully for dataset`);
 
       return {
         success: true,
@@ -127,7 +123,6 @@ export class MintDatasetController {
     @Param('tokenId') tokenId: string,
   ) {
     try {
-      this.logger.log(`Updating dataset ${datasetId} with tokenId ${tokenId}`);
 
       const dataset = await this.datasetRecordService.findById(datasetId);
 
@@ -164,7 +159,6 @@ export class MintDatasetController {
   @ApiResponse({ status: 404, description: 'Dataset not found' })
   async getTokenURI(@Param('datasetId') datasetId: string) {
     try {
-      this.logger.log(`Getting token URI for dataset: ${datasetId}`);
 
       const dataset = await this.datasetRecordService.findById(datasetId);
 

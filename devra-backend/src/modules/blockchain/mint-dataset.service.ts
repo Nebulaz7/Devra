@@ -33,7 +33,6 @@ export class MintDatasetService {
    * @param owner - User wallet address
    */
   prepareMint(dataset: Dataset, owner: string) {
-    this.logger.log(`Validating owner address: "${owner}"`);
 
     const cleanedOwner = (owner ?? '').trim();
 

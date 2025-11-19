@@ -27,17 +27,14 @@ export class UploadProcessor implements OnModuleInit {
     this.worker = new Worker<UploadJobData>(
       'crust-upload',
       async (job: Job<UploadJobData>) => {
-        this.logger.debug(`📦 Processing upload job: ${job.id}`);
         const { filePath, datasetId } = job.data;
 
         try {
           const result = await this.crustService.uploadToCrust(filePath);
           const cid = 'hash' in result ? result.hash : result.Hash;
-          this.logger.log(`✅ Upload complete for ${filePath}: ${cid}`);
 
           if (datasetId && typeof datasetId === 'string' && cid) {
             await this.datasetRecordService.markAsUploaded(datasetId, cid);
-            this.logger.log(`🗄️ Dataset ${datasetId} updated with CID: ${cid}`);
           } else {
             this.logger.warn(
               `⚠️ Missing datasetId or CID — skipping DB update.`,

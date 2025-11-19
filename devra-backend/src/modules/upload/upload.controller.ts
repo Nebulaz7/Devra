@@ -80,15 +80,11 @@ export class UploadController {
       },
     );
 
-    console.log('🗂️  Dataset record created:', datasetRecord);
-
     await this.uploadQueueService.addJob({
       datasetId: datasetRecord.id,
       filePath: fileEncryptionResult.encryptedPath,
       metadata: createDatasetDto,
     });
-
-    console.log('🗂️  Dataset record created:', datasetRecord);
 
     return {
       message: 'Dataset verified, encrypted, and uploaded successfully',

@@ -62,13 +62,6 @@ export default function MintDatasetModal({
 
   // Watch for successful mint and tokenId extraction
   useEffect(() => {
-    console.log("🔔 Mint status changed:", { 
-      isSuccess, 
-      tokenId, 
-      formStep,
-      hasDatasetId: !!formData.datasetId 
-    });
-
     if (isSuccess && tokenId && formData.datasetId && formStep === "processing") {
       console.log("✅ All conditions met! Calling handleMintSuccess");
       handleMintSuccess(tokenId);
@@ -112,10 +105,7 @@ export default function MintDatasetModal({
   };
 
   const handleMintSuccess = async (mintedTokenId: number) => {
-    try {
-      console.log("📝 Updating backend with tokenId:", mintedTokenId);
-      console.log("📝 DatasetId:", formData.datasetId);
-      
+    try {      
       const updateResponse = await fetch(
         `http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${mintedTokenId}`,
         {
@@ -125,7 +115,6 @@ export default function MintDatasetModal({
       );
 
       if (updateResponse.ok) {
-        console.log("✅ Backend updated successfully");
         toast.success("Dataset NFT minted successfully!", { id: "minting" });
       } else {
         console.warn("⚠️ Backend update failed but continuing");
@@ -204,7 +193,6 @@ export default function MintDatasetModal({
 
       // Store datasetId in state
       setFormData(prev => ({ ...prev, datasetId }));
-      console.log("✅ Dataset created with ID:", datasetId);
 
       // Step 2: Wait for IPFS upload
       toast.loading("Processing and uploading to IPFS...", { id: "minting" });
@@ -235,18 +223,16 @@ export default function MintDatasetModal({
         throw new Error("Dataset upload to IPFS timeout or failed");
       }
 
-      console.log("✅ Dataset uploaded to IPFS with CID:", dataset.cid);
 
       // Step 3: Mint NFT directly with CID
       toast.loading("Minting your dataset NFT...", { id: "minting" });
 
       const cid = dataset.cid;
-      console.log("🎨 Calling mint with CID:", cid);
       
       // Call mint with just the CID - hook will extract tokenId automatically
       await mint(cid);
 
-      console.log("⏳ Waiting for tokenId extraction...");
+      console.log("...");
       // The useEffect will handle the rest when tokenId is extracted
 
     } catch (err: unknown) {
