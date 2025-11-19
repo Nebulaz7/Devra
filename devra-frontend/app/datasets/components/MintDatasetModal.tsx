@@ -107,7 +107,7 @@ export default function MintDatasetModal({
   const handleMintSuccess = async (mintedTokenId: number) => {
     try {      
       const updateResponse = await fetch(
-        `http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${mintedTokenId}`,
+        `https://devra-px58.onrender.com/blockchain/dataset/${formData.datasetId}/token/${mintedTokenId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,7 +174,7 @@ export default function MintDatasetModal({
       form.append("file", formData.file);
       form.append("owner", walletAddress);
 
-      const uploadResponse = await fetch(`http://localhost:5000/datasets/upload`, {
+      const uploadResponse = await fetch(`https://devra-px58.onrender.com/datasets/upload`, {
         method: "POST",
         body: form,
       });
@@ -203,7 +203,7 @@ export default function MintDatasetModal({
       
       while (attempts < maxAttempts) {
         const statusResponse = await fetch(
-          `http://localhost:5000/blockchain/dataset/${datasetId}`
+          `https://devra-px58.onrender.com/blockchain/dataset/${datasetId}`
         );
         
         if (statusResponse.ok) {
