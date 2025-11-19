@@ -3,28 +3,64 @@ import {
   useReadContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
+import { useEffect, useState } from "react";
 import { DATASET_NFT_ADDRESS, parseWND } from "./config";
 import { DatasetNFTAbi } from "./DatasetNFT";
-
-// ============ WRITE HOOKS (Transactions) ============
+import { decodeEventLog } from 'viem';
 
 /**
  * Hook for minting dataset NFTs
  */
 export function useMintDataset() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { data: receipt, isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
+  });
+  
+  const [tokenId, setTokenId] = useState<number | undefined>(undefined);
+
+  // Read total supply after successful mint
+  const { data: totalSupply, refetch: refetchTotal } = useReadContract({
+    address: DATASET_NFT_ADDRESS,
+    abi: DatasetNFTAbi,
+    functionName: "total",
+    query: {
+      enabled: false, // Only query when we trigger it
+    },
   });
 
   const mint = async (ipfsCid: string) => {
+    setTokenId(undefined);
+    console.log("🎨 Minting with CID:", ipfsCid);
+    
     return writeContract({
       address: DATASET_NFT_ADDRESS,
-      abi: DatasetNFTAbi, // Remove .abi
+      abi: DatasetNFTAbi,
       functionName: "mint",
-      args: [ipfsCid],
+      args: [ipfsCid], // Contract only needs the CID
     });
   };
+
+  // Query total supply when transaction succeeds
+  useEffect(() => {
+    if (isSuccess && receipt && !tokenId) {
+      console.log("✅ Mint successful! Querying total supply for tokenId...");
+      
+      // Wait a bit for blockchain to update, then query
+      setTimeout(() => {
+        refetchTotal();
+      }, 2000); // Increased delay to 2 seconds
+    }
+  }, [isSuccess, receipt, tokenId, refetchTotal]);
+
+  // Extract tokenId from total supply
+  useEffect(() => {
+    if (totalSupply !== undefined && isSuccess && !tokenId) {
+      const newTokenId = Number(totalSupply);
+      console.log("🎉 EXTRACTED TOKEN ID:", newTokenId);
+      setTokenId(newTokenId);
+    }
+  }, [totalSupply, isSuccess, tokenId]);
 
   return {
     mint,
@@ -33,9 +69,10 @@ export function useMintDataset() {
     isSuccess,
     error,
     hash,
+    receipt,
+    tokenId,
   };
 }
-
 /**
  * Hook for listing a dataset for sale
  */
@@ -107,7 +144,7 @@ export function useCancelListing() {
   const cancel = async (tokenId: number) => {
     return writeContract({
       address: DATASET_NFT_ADDRESS,
-      abi: DatasetNFTAbi, // Remove .abi
+      abi: DatasetNFTAbi,
       functionName: "cancel",
       args: [BigInt(tokenId)],
     });

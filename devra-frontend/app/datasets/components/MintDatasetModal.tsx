@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -53,14 +53,29 @@ export default function MintDatasetModal({
     description: "",
     file: null as File | null,
     categories: [] as string[],
+    datasetId: "", // Add this field
   });
   const [error, setError] = useState<string | null>(null);
 
   const { address } = useWallet();
+  const { mint, tokenId, isPending, isConfirming, isSuccess } = useMintDataset();
 
-  const { mint } = useMintDataset();
+  // Watch for successful mint and tokenId extraction
+  useEffect(() => {
+    console.log("🔔 Mint status changed:", { 
+      isSuccess, 
+      tokenId, 
+      formStep,
+      hasDatasetId: !!formData.datasetId 
+    });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isSuccess && tokenId && formData.datasetId && formStep === "processing") {
+      console.log("✅ All conditions met! Calling handleMintSuccess");
+      handleMintSuccess(tokenId);
+    }
+  }, [isSuccess, tokenId, formStep, formData.datasetId]);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -96,76 +111,165 @@ export default function MintDatasetModal({
     }));
   };
 
-const handleStartProcess = async () => {
-  if (
-    !formData.name ||
-    !formData.description ||
-    !formData.file ||
-    formData.categories.length === 0
-  ) {
-    setError("Please fill all fields, upload a file, and select at least one category");
-    toast.error("Please complete all required fields");
-    return;
-  }
+  const handleMintSuccess = async (mintedTokenId: number) => {
+    try {
+      console.log("📝 Updating backend with tokenId:", mintedTokenId);
+      console.log("📝 DatasetId:", formData.datasetId);
+      
+      const updateResponse = await fetch(
+        `http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${mintedTokenId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
-  setError(null);
-  setFormStep("processing");
+      if (updateResponse.ok) {
+        console.log("✅ Backend updated successfully");
+        toast.success("Dataset NFT minted successfully!", { id: "minting" });
+      } else {
+        console.warn("⚠️ Backend update failed but continuing");
+        toast.success("NFT minted! (Backend update pending)", { id: "minting" });
+      }
 
-  try {
-    toast.loading("Uploading and verifying dataset...", { id: "minting" });
+      setFormStep("success");
 
-    const form = new FormData();
-    form.append("name", formData.name);
-    form.append("description", formData.description);
-    form.append("categories", JSON.stringify(formData.categories));
-    form.append("file", formData.file);
-    form.append("owner", address || "");
-    const response = await fetch(`http://localhost:5000/datasets/upload`, {
-      method: "POST",
-      body: form,
-    });
+      setTimeout(() => {
+        handleClose();
+        onSuccess();
+      }, 3000);
+    } catch (err) {
+      console.error("❌ Error updating backend with tokenId:", err);
+      // Still show success since NFT was minted
+      toast.success("NFT minted successfully!", { id: "minting" });
+      setFormStep("success");
+      
+      setTimeout(() => {
+        handleClose();
+        onSuccess();
+      }, 3000);
+    }
+  };
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Upload failed: ${errText}`);
+  const handleStartProcess = async () => {
+    const walletAddress = address;
+    
+    if (!walletAddress || walletAddress.trim() === '') {
+      setError("Please connect your wallet first");
+      toast.error("Wallet not connected");
+      return;
     }
 
-    const data = await response.json();
-    const { cid } = data;
-    if (!cid) {
-      throw new Error("No CID returned from server");
+    if (
+      !formData.name ||
+      !formData.description ||
+      !formData.file ||
+      formData.categories.length === 0
+    ) {
+      setError("Please fill all fields, upload a file, and select at least one category");
+      toast.error("Please complete all required fields");
+      return;
     }
 
-    toast.loading("Minting your dataset NFT...", { id: "minting" });
+    setError(null);
+    setFormStep("processing");
 
-    await mint(cid);
+    try {
+      // Step 1: Upload dataset to backend
+      toast.loading("Uploading and verifying dataset...", { id: "minting" });
 
-    toast.success("Dataset NFT minted successfully!", { id: "minting" });
-    setFormStep("success");
+      const form = new FormData();
+      form.append("name", formData.name);
+      form.append("description", formData.description);
+      form.append("categories", JSON.stringify(formData.categories));
+      form.append("file", formData.file);
+      form.append("owner", walletAddress);
 
-    setTimeout(() => {
-      handleClose();
-      onSuccess();
-    }, 3000);
-  } catch (err: unknown) {
-    console.error("Mint error:", err);
-    let errorMessage = "Minting failed";
-    if (err instanceof Error) errorMessage = err.message;
-    else if (typeof err === "string") errorMessage = err;
-    else {
-      try {
-        errorMessage = JSON.stringify(err) || errorMessage;
-      } catch {}
+      const uploadResponse = await fetch(`http://localhost:5000/datasets/upload`, {
+        method: "POST",
+        body: form,
+      });
+
+      if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text();
+        throw new Error(`Upload failed: ${errText}`);
+      }
+
+      const uploadData = await uploadResponse.json();
+      const datasetId = uploadData.datasetRecord?.id;
+
+      if (!datasetId) {
+        throw new Error("No dataset ID returned from server");
+      }
+
+      // Store datasetId in state
+      setFormData(prev => ({ ...prev, datasetId }));
+      console.log("✅ Dataset created with ID:", datasetId);
+
+      // Step 2: Wait for IPFS upload
+      toast.loading("Processing and uploading to IPFS...", { id: "minting" });
+      
+      let attempts = 0;
+      const maxAttempts = 60;
+      let dataset;
+      
+      while (attempts < maxAttempts) {
+        const statusResponse = await fetch(
+          `http://localhost:5000/blockchain/dataset/${datasetId}`
+        );
+        
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          
+          if (statusData.data.status === "uploaded") {
+            dataset = statusData.data;
+            break;
+          }
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+      }
+
+      if (!dataset || dataset.status !== "uploaded") {
+        throw new Error("Dataset upload to IPFS timeout or failed");
+      }
+
+      console.log("✅ Dataset uploaded to IPFS with CID:", dataset.cid);
+
+      // Step 3: Mint NFT directly with CID
+      toast.loading("Minting your dataset NFT...", { id: "minting" });
+
+      const cid = dataset.cid;
+      console.log("🎨 Calling mint with CID:", cid);
+      
+      // Call mint with just the CID - hook will extract tokenId automatically
+      await mint(cid);
+
+      console.log("⏳ Waiting for tokenId extraction...");
+      // The useEffect will handle the rest when tokenId is extracted
+
+    } catch (err: unknown) {
+      console.error("❌ Process error:", err);
+      let errorMessage = "Process failed";
+      if (err instanceof Error) errorMessage = err.message;
+      else if (typeof err === "string") errorMessage = err;
+      
+      setError(errorMessage);
+      toast.error(errorMessage, { id: "minting" });
+      setFormStep("details");
     }
-    setError(errorMessage);
-    toast.error("Failed to mint dataset NFT");
-    setFormStep("details");
-  }
-};
+  };
 
   const handleClose = () => {
     if (formStep === "details" || formStep === "success") {
-      setFormData({ name: "", description: "", file: null, categories: [] });
+      setFormData({ 
+        name: "", 
+        description: "", 
+        file: null, 
+        categories: [],
+        datasetId: "" 
+      });
       setFormStep("details");
       setError(null);
       onClose();
@@ -400,7 +504,14 @@ const handleStartProcess = async () => {
 
                   {/* Actions */}
                   <div className="flex gap-4 pt-6">
-                                        <button
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="flex-1 px-6 py-4 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-colors font-semibold border border-white/10"
+                    >
+                      Cancel
+                    </button>
+                    <button
                       type="button"
                       onClick={handleStartProcess}
                       disabled={
@@ -412,13 +523,7 @@ const handleStartProcess = async () => {
                       className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                     >
                       <Sparkles className="w-5 h-5" />
-                      Upload Dataset
-                    </button>
-                    <button
-                      type="button"
-                      className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                    >
-                    Mint Dataset
+                      Mint Dataset
                     </button>
                   </div>
 

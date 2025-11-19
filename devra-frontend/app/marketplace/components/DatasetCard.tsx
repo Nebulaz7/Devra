@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -10,6 +10,7 @@ import {
   Sparkles,
   CheckCircle,
   Database,
+  Loader2,
 } from "lucide-react";
 import { blo } from "blo";
 import { formatWND } from "@/lib/contracts/config";
@@ -28,8 +29,61 @@ interface DatasetCardProps {
   onPurchase: () => void;
 }
 
+interface BackendDataset {
+  id: string;
+  name: string;
+  owner: string;
+  status: string;
+  hash: string;
+  cid: string | null;
+  ipfsUrl: string | null;
+  verification?: {
+    scores?: Record<string, number>;
+    isValid?: boolean;
+  };
+  createdAt: string;
+}
+
 const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
+  const [backendData, setBackendData] = useState<BackendDataset | null>(null);
+  const [loading, setLoading] = useState(true);
   const avatarUrl = blo(dataset.creator as `0x${string}`);
+
+useEffect(() => {
+  const fetchBackendData = async () => {
+    try {
+      // Fetch dataset by tokenId directly
+      const response = await fetch(
+        `http://localhost:5000/blockchain/dataset/token/${dataset.tokenId}`
+      );
+      
+      if (response.ok) {
+        const result = await response.json();
+        setBackendData(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch backend data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchBackendData();
+}, [dataset.tokenId]);
+
+
+  // Calculate quality score from verification data
+  const calculateScore = (): number => {
+    if (backendData?.verification?.scores) {
+      const scores = Object.values(backendData.verification.scores);
+      const average = scores.reduce((a, b) => a + b, 0) / scores.length;
+      return Math.round(average);
+    }
+    return dataset.score;
+  };
+
+  const qualityScore = calculateScore();
+  const displayName = backendData?.name || dataset.name || `Dataset #${dataset.tokenId}`;
 
   const getQualityColor = (score: number) => {
     if (score >= 80) return "text-green-500";
@@ -41,6 +95,17 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
     if (score >= 80) return "bg-green-500/10 border-green-500/20";
     if (score >= 60) return "bg-yellow-500/10 border-yellow-500/20";
     return "bg-red-500/10 border-red-500/20";
+  };
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case "uploaded":
+        return "text-green-400";
+      case "pending":
+        return "text-yellow-400";
+      default:
+        return "text-gray-400";
+    }
   };
 
   return (
@@ -66,12 +131,16 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
                 className="w-14 h-14 rounded-xl border-2 border-pink-500/30 group-hover:border-pink-500/60 transition-colors"
               />
               <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center border-2 border-black">
-                <CheckCircle className="w-3 h-3 text-white" />
+                {loading ? (
+                  <Loader2 className="w-3 h-3 text-white animate-spin" />
+                ) : (
+                  <CheckCircle className="w-3 h-3 text-white" />
+                )}
               </div>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold text-lg truncate group-hover:text-pink-500 transition-colors">
-                {dataset.name || `Dataset #${dataset.tokenId}`}
+                {displayName}
               </h3>
               <p className="text-gray-400 text-xs font-mono truncate">
                 {dataset.creator.slice(0, 6)}...{dataset.creator.slice(-4)}
@@ -82,19 +151,19 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
           {/* Quality Badge */}
           <div
             className={`px-3 py-1.5 rounded-full border ${getQualityBg(
-              dataset.score
+              qualityScore
             )}`}
           >
             <div className="flex items-center gap-1.5">
               <Sparkles
-                className={`w-3.5 h-3.5 ${getQualityColor(dataset.score)}`}
+                className={`w-3.5 h-3.5 ${getQualityColor(qualityScore)}`}
               />
               <span
                 className={`text-xs font-bold ${getQualityColor(
-                  dataset.score
+                  qualityScore
                 )}`}
               >
-                {dataset.score}%
+                {qualityScore}%
               </span>
             </div>
           </div>
@@ -115,33 +184,27 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
               <Shield className="w-3.5 h-3.5 text-green-500" />
               <p className="text-xs text-gray-500">Status</p>
             </div>
-            <p className="text-green-400 font-bold text-sm">Verified</p>
+            <p className={`font-bold text-sm capitalize ${getStatusColor(backendData?.status)}`}>
+              {backendData?.status || "Unknown"}
+            </p>
           </div>
 
           <div className="bg-white/5 rounded-xl p-3 border border-white/10 group-hover:border-pink-500/20 transition-colors">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
-              <p className="text-xs text-gray-500">Score</p>
+              <p className="text-xs text-gray-500">Quality</p>
             </div>
             <p
-              className={`font-bold text-sm ${getQualityColor(dataset.score)}`}
+              className={`font-bold text-sm ${getQualityColor(qualityScore)}`}
             >
-              {dataset.score >= 80
+              {qualityScore >= 80
                 ? "High"
-                : dataset.score >= 60
+                : qualityScore >= 60
                 ? "Good"
                 : "Fair"}
             </p>
           </div>
         </div>
-
-        {/* CID Preview */}
-        {/* <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-          <p className="text-xs text-gray-500 mb-1">IPFS CID</p>
-          <p className="text-white font-mono text-xs truncate">
-            {dataset.cid.startsWith("0x") ? dataset.cid.slice(2) : dataset.cid}
-          </p>
-        </div> */}
 
         {/* Price and Action */}
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
@@ -156,10 +219,10 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.0 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onPurchase}
-            className="px-5 py-3  cursor-pointer bg-pink-500  hover:bg-pink-600 text-white rounded-full font-medium flex items-center gap-2 shadow-sm shadow-pink-500/25 transition-all"
+            className="px-5 py-3 cursor-pointer bg-pink-500 hover:bg-pink-600 text-white rounded-full font-medium flex items-center gap-2 shadow-lg shadow-pink-500/25 transition-all"
           >
             <ShoppingCart className="w-4 h-4" />
             Buy Now
@@ -169,10 +232,8 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
         {/* View Details Link */}
         <Link
           href={`/marketplace/${dataset.tokenId}`}
-          passHref
           onClick={() => {
             toast.success("Opening dataset details...");
-            // Navigate to details page
           }}
           className="w-full py-2 text-sm cursor-pointer text-gray-400 hover:text-pink-500 transition-colors flex items-center justify-center gap-1 group/link"
         >
