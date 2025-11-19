@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "module": "CommonJS",
+    "module": "NodeNext",
     "target": "ES2020"
   },
   "include": ["src/**/*.ts"],
