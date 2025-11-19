@@ -35,7 +35,7 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(5000);
-  console.log('🚀 Server running on http://localhost:5000');
-  console.log('📚 API Docs available at http://localhost:5000/api');
+  console.log('🚀 Server running on https://devra-px58.onrender.com');
+  console.log('📚 API Docs available at https://devra-px58.onrender.com/api');
 }
 bootstrap();
