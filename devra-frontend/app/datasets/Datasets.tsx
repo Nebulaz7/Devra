@@ -85,10 +85,10 @@ export default function Datasets() {
 
   // Fetch datasets when user connects
   useEffect(() => {
-    if (address && isConnected) {
-      fetchDatasets();
-    }
-  });
+  if (address && isConnected) {
+    fetchDatasets();
+  }
+}, [address, isConnected, nftBalance]);
 
   const fetchDatasets = async () => {
     if (!address || nftBalance === 0) {

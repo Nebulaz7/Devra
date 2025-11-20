@@ -1,4 +1,14 @@
 {
   "extends": "./tsconfig.json",
+<<<<<<< HEAD
+=======
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "NodeNext",
+    "target": "ES2020"
+  },
+  "include": ["src/**/*.ts"],
+>>>>>>> 87b21de6e6d2631849829a1d530aeeb35371a185
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }
