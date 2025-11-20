@@ -1,10 +1,10 @@
 import type { Chain } from "wagmi/chains";
 import { createConfig, createStorage, http } from "wagmi";
-import { injected } from "@wagmi/connectors";
+import { metaMask } from "@wagmi/connectors";
 
 // Westend Asset Hub configuration
 export const westendAssetHub = {
-  id: 420420421, // Westend Asset Hub Chain ID
+  id: 420420421,
   name: "Westend Asset Hub",
   nativeCurrency: {
     name: "Westend",
@@ -28,17 +28,17 @@ export const westendAssetHub = {
 export const config = createConfig({
   chains: [westendAssetHub],
   connectors: [
-    injected({
-      target: "metaMask",
-    }),
+    metaMask(),
   ],
   storage: createStorage({
     storage: typeof window !== "undefined" ? localStorage : undefined,
     key: "devra-wallet",
   }),
   transports: {
-    [westendAssetHub.id]: http(),
-  },
+  [westendAssetHub.id]: http(
+    "https://westend-asset-hub-eth-rpc.polkadot.io"
+  ),
+}
 });
 
 declare module "wagmi" {

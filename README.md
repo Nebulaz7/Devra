@@ -277,7 +277,7 @@ npm run start:dev
 DATABASE_URL="postgresql://user:password@localhost:5432/devra"
 REDIS_HOST=localhost
 REDIS_PORT=6379
-AI_VERIFIER_URL=http://localhost:5000
+AI_VERIFIER_URL=http://localhost:5000/
 IPFS_GATEWAY=https://ipfs.io
 ```
 
@@ -289,7 +289,7 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 5000
-# AI service runs on http://localhost:5000
+# AI service runs on http://localhost:5000/
 ```
 
 #### 5. Database Migration

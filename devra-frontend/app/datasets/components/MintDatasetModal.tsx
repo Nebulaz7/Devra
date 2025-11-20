@@ -58,15 +58,44 @@ export default function MintDatasetModal({
   const [error, setError] = useState<string | null>(null);
 
   const { address } = useWallet();
-  const { mint, tokenId, isPending, isConfirming, isSuccess } = useMintDataset();
 
-  // Watch for successful mint and tokenId extraction
-  useEffect(() => {
-    if (isSuccess && tokenId && formData.datasetId && formStep === "processing") {
-      console.log("✅ All conditions met! Calling handleMintSuccess");
-      handleMintSuccess(tokenId);
-    }
-  }, [isSuccess, tokenId, formStep, formData.datasetId]);
+  const { mint } = useMintDataset({
+    onSuccess: async (tokenId: number) => {
+      console.log("✅ NFT minted, tokenId:", tokenId);
+
+      toast.success(`NFT minted successfully! Token ID: ${tokenId}`, { id: "minting" });
+      
+      // Update backend with tokenId
+      if (formData.datasetId) {
+        try {
+          await fetch(`http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${tokenId}`, {
+            method: "POST",
+          });
+          console.log("Backend updated with tokenId");
+        } catch (err) {
+          console.error("Failed to update backend tokenId:", err);
+        }
+      }
+
+      setFormStep("success");
+      
+      // Auto-close after success
+      setTimeout(() => {
+        handleClose();
+        onSuccess();
+      }, 3000);
+    },
+    onError: (err: unknown) => {
+      console.error("❌ Minting failed:", err);
+      let errorMessage = "Minting failed";
+      if (err instanceof Error) errorMessage = err.message;
+      else if (typeof err === "string") errorMessage = err;
+
+      toast.error(errorMessage, { id: "minting" });
+      setError(errorMessage);
+      setFormStep("details");
+    },
+  });
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,148 +133,98 @@ export default function MintDatasetModal({
     }));
   };
 
-  const handleMintSuccess = async (mintedTokenId: number) => {
-    try {      
-      const updateResponse = await fetch(
-        `http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${mintedTokenId}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+  // 1️⃣ Define your mint hook with callbacks
+const handleStartProcess = async () => {
+  const walletAddress = address;
+
+  // 1️⃣ Check wallet
+  if (!walletAddress || walletAddress.trim() === "") {
+    setError("Please connect your wallet first");
+    toast.error("Wallet not connected");
+    return;
+  }
+
+  // 2️⃣ Validate form
+  if (
+    !formData.name ||
+    !formData.description ||
+    !formData.file ||
+    formData.categories.length === 0
+  ) {
+    setError("Please fill all fields, upload a file, and select at least one category");
+    toast.error("Please complete all required fields");
+    return;
+  }
+
+  setError(null);
+  setFormStep("processing");
+  toast.loading("Uploading and verifying dataset...", { id: "minting" });
+
+  try {
+    // 3️⃣ Upload dataset to backend
+    const form = new FormData();
+    form.append("name", formData.name);
+    form.append("description", formData.description);
+    form.append("categories", JSON.stringify(formData.categories));
+    form.append("file", formData.file);
+    form.append("owner", walletAddress);
+
+    const uploadResponse = await fetch(`http://localhost:5000/datasets/upload`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!uploadResponse.ok) {
+      const errText = await uploadResponse.text();
+      throw new Error(`Upload failed: ${errText}`);
+    }
+
+    const uploadData = await uploadResponse.json();
+    const datasetId = uploadData.datasetRecord?.id;
+    if (!datasetId) throw new Error("No dataset ID returned from server");
+
+    setFormData(prev => ({ ...prev, datasetId }));
+
+    // 4️⃣ Wait for IPFS upload (poll backend for status)
+    toast.loading("Processing and uploading to IPFS...", { id: "minting" });
+
+    let dataset;
+    let attempts = 0;
+    const maxAttempts = 60;
+    while (attempts < maxAttempts) {
+      const statusResponse = await fetch(`http://localhost:5000/blockchain/dataset/${datasetId}`);
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (statusData.data.status === "uploaded") {
+          dataset = statusData.data;
+          break;
         }
-      );
-
-      if (updateResponse.ok) {
-        toast.success("Dataset NFT minted successfully!", { id: "minting" });
-      } else {
-        console.warn("⚠️ Backend update failed but continuing");
-        toast.success("NFT minted! (Backend update pending)", { id: "minting" });
       }
-
-      setFormStep("success");
-
-      setTimeout(() => {
-        handleClose();
-        onSuccess();
-      }, 3000);
-    } catch (err) {
-      console.error("❌ Error updating backend with tokenId:", err);
-      // Still show success since NFT was minted
-      toast.success("NFT minted successfully!", { id: "minting" });
-      setFormStep("success");
-      
-      setTimeout(() => {
-        handleClose();
-        onSuccess();
-      }, 3000);
-    }
-  };
-
-  const handleStartProcess = async () => {
-    const walletAddress = address;
-    
-    if (!walletAddress || walletAddress.trim() === '') {
-      setError("Please connect your wallet first");
-      toast.error("Wallet not connected");
-      return;
+      await new Promise(r => setTimeout(r, 1000));
+      attempts++;
     }
 
-    if (
-      !formData.name ||
-      !formData.description ||
-      !formData.file ||
-      formData.categories.length === 0
-    ) {
-      setError("Please fill all fields, upload a file, and select at least one category");
-      toast.error("Please complete all required fields");
-      return;
+    if (!dataset || dataset.status !== "uploaded") {
+      throw new Error("Dataset upload to IPFS timeout or failed");
     }
 
-    setError(null);
-    setFormStep("processing");
+    // 5️⃣ Trigger minting
+    toast.loading("Minting your dataset NFT...", { id: "minting" });
+    await mint(dataset.cid); // ✅ Hook handles success/error and tokenId
 
-    try {
-      // Step 1: Upload dataset to backend
-      toast.loading("Uploading and verifying dataset...", { id: "minting" });
+    // Do NOT await tokenId here — let the hook callback handle success
+    toast.loading("Awaiting blockchain confirmation...", { id: "minting" });
+  } catch (err: unknown) {
+    console.error("❌ Process error:", err);
+    let errorMessage = "Process failed";
+    if (err instanceof Error) errorMessage = err.message;
+    else if (typeof err === "string") errorMessage = err;
 
-      const form = new FormData();
-      form.append("name", formData.name);
-      form.append("description", formData.description);
-      form.append("categories", JSON.stringify(formData.categories));
-      form.append("file", formData.file);
-      form.append("owner", walletAddress);
-
-      const uploadResponse = await fetch(`http://localhost:5000/datasets/upload`, {
-        method: "POST",
-        body: form,
-      });
-
-      if (!uploadResponse.ok) {
-        const errText = await uploadResponse.text();
-        throw new Error(`Upload failed: ${errText}`);
-      }
-
-      const uploadData = await uploadResponse.json();
-      const datasetId = uploadData.datasetRecord?.id;
-
-      if (!datasetId) {
-        throw new Error("No dataset ID returned from server");
-      }
-
-      // Store datasetId in state
-      setFormData(prev => ({ ...prev, datasetId }));
-
-      // Step 2: Wait for IPFS upload
-      toast.loading("Processing and uploading to IPFS...", { id: "minting" });
-      
-      let attempts = 0;
-      const maxAttempts = 60;
-      let dataset;
-      
-      while (attempts < maxAttempts) {
-        const statusResponse = await fetch(
-          `http://localhost:5000/blockchain/dataset/${datasetId}`
-        );
-        
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          
-          if (statusData.data.status === "uploaded") {
-            dataset = statusData.data;
-            break;
-          }
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        attempts++;
-      }
-
-      if (!dataset || dataset.status !== "uploaded") {
-        throw new Error("Dataset upload to IPFS timeout or failed");
-      }
-
-
-      // Step 3: Mint NFT directly with CID
-      toast.loading("Minting your dataset NFT...", { id: "minting" });
-
-      const cid = dataset.cid;
-      
-      // Call mint with just the CID - hook will extract tokenId automatically
-      await mint(cid);
-
-      console.log("...");
-      // The useEffect will handle the rest when tokenId is extracted
-
-    } catch (err: unknown) {
-      console.error("❌ Process error:", err);
-      let errorMessage = "Process failed";
-      if (err instanceof Error) errorMessage = err.message;
-      else if (typeof err === "string") errorMessage = err;
-      
-      setError(errorMessage);
-      toast.error(errorMessage, { id: "minting" });
-      setFormStep("details");
-    }
-  };
+    setError(errorMessage);
+    toast.error(errorMessage, { id: "minting" });
+    setFormStep("details");
+  }
+};
 
   const handleClose = () => {
     if (formStep === "details" || formStep === "success") {

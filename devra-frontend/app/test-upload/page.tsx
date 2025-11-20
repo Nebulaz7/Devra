@@ -37,7 +37,7 @@ const Page = () => {
       console.log("Sending file with size:", file.size);
       console.log("FormData contains file?", formData.has("file"));
 
-      const response = await fetch("http://localhost:5000/datasets/upload", {
+      const response = await fetch("http://localhost:5000//datasets/upload", {
         method: "POST",
         body: formData,
       });

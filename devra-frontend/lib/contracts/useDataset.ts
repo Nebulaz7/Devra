@@ -3,76 +3,124 @@ import {
   useReadContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { useEffect, useState } from "react";
 import { DATASET_NFT_ADDRESS, parseWND } from "./config";
 import { DatasetNFTAbi } from "./DatasetNFT";
-import { decodeEventLog } from 'viem';
+import { useState, useCallback } from "react";
+import { createPublicClient, http } from "viem";
+import { westendAssetHub } from "../wagmi";
 
-/**
- * Hook for minting dataset NFTs
- */
-export function useMintDataset() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { data: receipt, isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  });
-  
+// Public RPC client for Asset Hub
+const publicClient = createPublicClient({
+  chain: westendAssetHub,        // 👈 use the Chain object exported from lib/wagmi
+  transport: http(westendAssetHub.rpcUrls.default.http[0]),
+});
+
+export function useMintDataset(options?: {
+  onSuccess?: (tokenId: number) => void;
+  onError?: (err: Error) => void;
+}) {
   const [tokenId, setTokenId] = useState<number | undefined>(undefined);
+  const [isMinting, setIsMinting] = useState(false);
+  const [hash, setHash] = useState<string | undefined>();
+  const [error, setError] = useState<Error | null>(null);
 
-  // Read total supply after successful mint
-  const { data: totalSupply, refetch: refetchTotal } = useReadContract({
+  // Read total() from contract
+  const { refetch: refetchTotal } = useReadContract({
     address: DATASET_NFT_ADDRESS,
     abi: DatasetNFTAbi,
     functionName: "total",
-    query: {
-      enabled: false, // Only query when we trigger it
-    },
+    query: { enabled: false }
   });
 
-  const mint = async (ipfsCid: string) => {
-    setTokenId(undefined);
-    console.log("🎨 Minting with CID:", ipfsCid);
-    
-    return writeContract({
-      address: DATASET_NFT_ADDRESS,
-      abi: DatasetNFTAbi,
-      functionName: "mint",
-      args: [ipfsCid], // Contract only needs the CID
-    });
-  };
+  const { writeContractAsync } = useWriteContract();
 
-  // Query total supply when transaction succeeds
-  useEffect(() => {
-    if (isSuccess && receipt && !tokenId) {
-      console.log("✅ Mint successful! Querying total supply for tokenId...");
-      
-      // Wait a bit for blockchain to update, then query
-      setTimeout(() => {
-        refetchTotal();
-      }, 2000); // Increased delay to 2 seconds
-    }
-  }, [isSuccess, receipt, tokenId, refetchTotal]);
+  // -----------------------------
+  // 🚀 MAIN MINT FUNCTION
+  // -----------------------------
+  const mint = useCallback(async (cid: string) => {
+    try {
+      setError(null);
+      setIsMinting(true);
+      setTokenId(undefined);
 
-  // Extract tokenId from total supply
-  useEffect(() => {
-    if (totalSupply !== undefined && isSuccess && !tokenId) {
-      const newTokenId = Number(totalSupply);
-      console.log("🎉 EXTRACTED TOKEN ID:", newTokenId);
-      setTokenId(newTokenId);
+      console.log("🚀 Starting mint on Asset Hub with CID:", cid);
+
+      // --- 1️⃣ Token supply before ---
+      const beforeRes = await refetchTotal();
+      const beforeSupply = Number(beforeRes.data ?? 0);
+      console.log("📌 Token supply before:", beforeSupply);
+
+      // --- 2️⃣ Send TX (WITH chainId) ---
+      const txHash = await writeContractAsync({
+        chainId: westendAssetHub.id,   // 👈 FIXED: REQUIRED FOR ASSET HUB
+        address: DATASET_NFT_ADDRESS,
+        abi: DatasetNFTAbi,
+        functionName: "mint",
+        args: [cid],
+      });
+
+      console.log("📨 TX Sent:", txHash);
+      setHash(txHash);
+
+      // --- 3️⃣ Manual polling for receipt ---
+      console.log("⏳ Waiting for receipt…");
+      let receipt = null;
+
+      for (let i = 0; i < 60; i++) {
+        try {
+          receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+        } catch (_) {}
+
+        if (receipt) break;
+        await new Promise(res => setTimeout(res, 2000));
+      }
+
+      if (!receipt) throw new Error("Transaction not included in block (timeout)");
+
+      console.log("🧾 Receipt obtained!");
+
+      // --- 4️⃣ Wait for total() to increase ---
+      console.log("⏳ Waiting for total() to increase...");
+      let newSupply = beforeSupply;
+
+      for (let i = 0; i < 60; i++) {
+        const r = await refetchTotal();
+        newSupply = Number(r.data ?? 0);
+
+        console.log(`🔍 total() = ${newSupply}`);
+
+        if (newSupply > beforeSupply) break;
+        await new Promise(res => setTimeout(res, 2000));
+      }
+
+      if (newSupply === beforeSupply)
+        throw new Error("Mint confirmed but token supply did not update");
+
+      const mintedId = newSupply;
+      console.log("🎉 Token ID:", mintedId);
+
+      setTokenId(mintedId);
+      options?.onSuccess?.(mintedId);
+
+    } catch (err: unknown) {
+      console.error("❌ Mint error:", err);
+      const caughtError = err instanceof Error ? err : new Error(String(err));
+      setError(caughtError);
+      options?.onError?.(caughtError);
+    } finally {
+      setIsMinting(false);
     }
-  }, [totalSupply, isSuccess, tokenId]);
+  }, [refetchTotal, writeContractAsync, options]);
 
   return {
     mint,
-    isPending,
-    isConfirming,
-    isSuccess,
+    isMinting,
     error,
     hash,
-    receipt,
     tokenId,
   };
 }
+
 /**
  * Hook for listing a dataset for sale
  */
