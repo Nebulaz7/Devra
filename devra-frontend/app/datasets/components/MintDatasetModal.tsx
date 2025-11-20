@@ -63,14 +63,19 @@ export default function MintDatasetModal({
     onSuccess: async (tokenId: number) => {
       console.log("✅ NFT minted, tokenId:", tokenId);
 
-      toast.success(`NFT minted successfully! Token ID: ${tokenId}`, { id: "minting" });
-      
+      toast.success(`NFT minted successfully! Token ID: ${tokenId}`, {
+        id: "minting",
+      });
+
       // Update backend with tokenId
       if (formData.datasetId) {
         try {
-          await fetch(`http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${tokenId}`, {
-            method: "POST",
-          });
+          await fetch(
+            `https://devra-px58.onrender.com/blockchain/dataset/${formData.datasetId}/token/${tokenId}`,
+            {
+              method: "POST",
+            }
+          );
           console.log("Backend updated with tokenId");
         } catch (err) {
           console.error("Failed to update backend tokenId:", err);
@@ -78,7 +83,7 @@ export default function MintDatasetModal({
       }
 
       setFormStep("success");
-      
+
       // Auto-close after success
       setTimeout(() => {
         handleClose();
@@ -97,7 +102,7 @@ export default function MintDatasetModal({
     },
   });
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -134,106 +139,113 @@ export default function MintDatasetModal({
   };
 
   // 1️⃣ Define your mint hook with callbacks
-const handleStartProcess = async () => {
-  const walletAddress = address;
+  const handleStartProcess = async () => {
+    const walletAddress = address;
 
-  // 1️⃣ Check wallet
-  if (!walletAddress || walletAddress.trim() === "") {
-    setError("Please connect your wallet first");
-    toast.error("Wallet not connected");
-    return;
-  }
-
-  // 2️⃣ Validate form
-  if (
-    !formData.name ||
-    !formData.description ||
-    !formData.file ||
-    formData.categories.length === 0
-  ) {
-    setError("Please fill all fields, upload a file, and select at least one category");
-    toast.error("Please complete all required fields");
-    return;
-  }
-
-  setError(null);
-  setFormStep("processing");
-  toast.loading("Uploading and verifying dataset...", { id: "minting" });
-
-  try {
-    // 3️⃣ Upload dataset to backend
-    const form = new FormData();
-    form.append("name", formData.name);
-    form.append("description", formData.description);
-    form.append("categories", JSON.stringify(formData.categories));
-    form.append("file", formData.file);
-    form.append("owner", walletAddress);
-
-    const uploadResponse = await fetch(`http://localhost:5000/datasets/upload`, {
-      method: "POST",
-      body: form,
-    });
-
-    if (!uploadResponse.ok) {
-      const errText = await uploadResponse.text();
-      throw new Error(`Upload failed: ${errText}`);
+    // 1️⃣ Check wallet
+    if (!walletAddress || walletAddress.trim() === "") {
+      setError("Please connect your wallet first");
+      toast.error("Wallet not connected");
+      return;
     }
 
-    const uploadData = await uploadResponse.json();
-    const datasetId = uploadData.datasetRecord?.id;
-    if (!datasetId) throw new Error("No dataset ID returned from server");
+    // 2️⃣ Validate form
+    if (
+      !formData.name ||
+      !formData.description ||
+      !formData.file ||
+      formData.categories.length === 0
+    ) {
+      setError(
+        "Please fill all fields, upload a file, and select at least one category"
+      );
+      toast.error("Please complete all required fields");
+      return;
+    }
 
-    setFormData(prev => ({ ...prev, datasetId }));
+    setError(null);
+    setFormStep("processing");
+    toast.loading("Uploading and verifying dataset...", { id: "minting" });
 
-    // 4️⃣ Wait for IPFS upload (poll backend for status)
-    toast.loading("Processing and uploading to IPFS...", { id: "minting" });
+    try {
+      // 3️⃣ Upload dataset to backend
+      const form = new FormData();
+      form.append("name", formData.name);
+      form.append("description", formData.description);
+      form.append("categories", JSON.stringify(formData.categories));
+      form.append("file", formData.file);
+      form.append("owner", walletAddress);
 
-    let dataset;
-    let attempts = 0;
-    const maxAttempts = 60;
-    while (attempts < maxAttempts) {
-      const statusResponse = await fetch(`http://localhost:5000/blockchain/dataset/${datasetId}`);
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        if (statusData.data.status === "uploaded") {
-          dataset = statusData.data;
-          break;
+      const uploadResponse = await fetch(
+        `https://devra-px58.onrender.com/datasets/upload`,
+        {
+          method: "POST",
+          body: form,
         }
+      );
+
+      if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text();
+        throw new Error(`Upload failed: ${errText}`);
       }
-      await new Promise(r => setTimeout(r, 1000));
-      attempts++;
+
+      const uploadData = await uploadResponse.json();
+      const datasetId = uploadData.datasetRecord?.id;
+      if (!datasetId) throw new Error("No dataset ID returned from server");
+
+      setFormData((prev) => ({ ...prev, datasetId }));
+
+      // 4️⃣ Wait for IPFS upload (poll backend for status)
+      toast.loading("Processing and uploading to IPFS...", { id: "minting" });
+
+      let dataset;
+      let attempts = 0;
+      const maxAttempts = 60;
+      while (attempts < maxAttempts) {
+        const statusResponse = await fetch(
+          `https://devra-px58.onrender.com/blockchain/dataset/${datasetId}`
+        );
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          if (statusData.data.status === "uploaded") {
+            dataset = statusData.data;
+            break;
+          }
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+        attempts++;
+      }
+
+      if (!dataset || dataset.status !== "uploaded") {
+        throw new Error("Dataset upload to IPFS timeout or failed");
+      }
+
+      // 5️⃣ Trigger minting
+      toast.loading("Minting your dataset NFT...", { id: "minting" });
+      await mint(dataset.cid); // ✅ Hook handles success/error and tokenId
+
+      // Do NOT await tokenId here — let the hook callback handle success
+      toast.loading("Awaiting blockchain confirmation...", { id: "minting" });
+    } catch (err: unknown) {
+      console.error("❌ Process error:", err);
+      let errorMessage = "Process failed";
+      if (err instanceof Error) errorMessage = err.message;
+      else if (typeof err === "string") errorMessage = err;
+
+      setError(errorMessage);
+      toast.error(errorMessage, { id: "minting" });
+      setFormStep("details");
     }
-
-    if (!dataset || dataset.status !== "uploaded") {
-      throw new Error("Dataset upload to IPFS timeout or failed");
-    }
-
-    // 5️⃣ Trigger minting
-    toast.loading("Minting your dataset NFT...", { id: "minting" });
-    await mint(dataset.cid); // ✅ Hook handles success/error and tokenId
-
-    // Do NOT await tokenId here — let the hook callback handle success
-    toast.loading("Awaiting blockchain confirmation...", { id: "minting" });
-  } catch (err: unknown) {
-    console.error("❌ Process error:", err);
-    let errorMessage = "Process failed";
-    if (err instanceof Error) errorMessage = err.message;
-    else if (typeof err === "string") errorMessage = err;
-
-    setError(errorMessage);
-    toast.error(errorMessage, { id: "minting" });
-    setFormStep("details");
-  }
-};
+  };
 
   const handleClose = () => {
     if (formStep === "details" || formStep === "success") {
-      setFormData({ 
-        name: "", 
-        description: "", 
-        file: null, 
+      setFormData({
+        name: "",
+        description: "",
+        file: null,
         categories: [],
-        datasetId: "" 
+        datasetId: "",
       });
       setFormStep("details");
       setError(null);
