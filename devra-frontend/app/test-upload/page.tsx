@@ -37,10 +37,13 @@ const Page = () => {
       console.log("Sending file with size:", file.size);
       console.log("FormData contains file?", formData.has("file"));
 
-      const response = await fetch("http://localhost:5000//datasets/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "https://devra-px58.onrender.com/datasets/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       console.log("Response status:", response.status);
 
@@ -55,7 +58,7 @@ const Page = () => {
 
       if (!response.ok) {
         throw new Error(
-          data?.error || `Server responded with ${response.status}`,
+          data?.error || `Server responded with ${response.status}`
         );
       }
 
@@ -63,7 +66,7 @@ const Page = () => {
     } catch (err) {
       console.error("Upload error:", err);
       setError(
-        err instanceof Error ? err.message : "An unknown error occurred",
+        err instanceof Error ? err.message : "An unknown error occurred"
       );
     } finally {
       setUploading(false);
