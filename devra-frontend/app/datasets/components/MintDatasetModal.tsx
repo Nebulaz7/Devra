@@ -1,14 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Upload,
   CheckCircle,
   AlertCircle,
-  Brain,
-  Lock,
-  Database,
   Shield,
   Sparkles,
   Tags,
@@ -53,17 +50,17 @@ export default function MintDatasetModal({
     description: "",
     file: null as File | null,
     categories: [] as string[],
-    datasetId: "", // Add this field
+    datasetId: "",
   });
   const [error, setError] = useState<string | null>(null);
 
   const { address } = useWallet();
 
-  const { mint } = useMintDataset({
+  // ✅ Use your existing mint hook
+  const { mint, isMinting } = useMintDataset({
     onSuccess: async (tokenId: number) => {
-      console.log("✅ NFT minted, tokenId:", tokenId);
-
-      toast.success(`NFT minted successfully! Token ID: ${tokenId}`, {
+      console.log("✅ NFT minted successfully! Token ID:", tokenId);
+      toast.success(`Dataset NFT minted! Token ID: ${tokenId}`, {
         id: "minting",
       });
 
@@ -71,33 +68,27 @@ export default function MintDatasetModal({
       if (formData.datasetId) {
         try {
           await fetch(
-            `https://devra-px58.onrender.com/blockchain/dataset/${formData.datasetId}/token/${tokenId}`,
-            {
-              method: "POST",
-            }
+            `http://localhost:5000/blockchain/dataset/${formData.datasetId}/token/${tokenId}`,
+            { method: "POST" }
           );
-          console.log("Backend updated with tokenId");
+          console.log("✅ Backend updated with tokenId");
         } catch (err) {
-          console.error("Failed to update backend tokenId:", err);
+          console.error("❌ Failed to update backend:", err);
         }
       }
 
       setFormStep("success");
 
-      // Auto-close after success
+      // Auto-close after 3 seconds
       setTimeout(() => {
         handleClose();
         onSuccess();
       }, 3000);
     },
-    onError: (err: unknown) => {
+    onError: (err: Error) => {
       console.error("❌ Minting failed:", err);
-      let errorMessage = "Minting failed";
-      if (err instanceof Error) errorMessage = err.message;
-      else if (typeof err === "string") errorMessage = err;
-
-      toast.error(errorMessage, { id: "minting" });
-      setError(errorMessage);
+      toast.error(err.message || "Minting failed", { id: "minting" });
+      setError(err.message);
       setFormStep("details");
     },
   });
@@ -138,18 +129,17 @@ export default function MintDatasetModal({
     }));
   };
 
-  // 1️⃣ Define your mint hook with callbacks
   const handleStartProcess = async () => {
     const walletAddress = address;
 
-    // 1️⃣ Check wallet
+    // 1️⃣ Validate wallet connection
     if (!walletAddress || walletAddress.trim() === "") {
       setError("Please connect your wallet first");
       toast.error("Wallet not connected");
       return;
     }
 
-    // 2️⃣ Validate form
+    // 2️⃣ Validate form fields
     if (
       !formData.name ||
       !formData.description ||
@@ -165,7 +155,7 @@ export default function MintDatasetModal({
 
     setError(null);
     setFormStep("processing");
-    toast.loading("Uploading and verifying dataset...", { id: "minting" });
+    toast.loading("Uploading dataset to backend...", { id: "minting" });
 
     try {
       // 3️⃣ Upload dataset to backend
@@ -177,7 +167,7 @@ export default function MintDatasetModal({
       form.append("owner", walletAddress);
 
       const uploadResponse = await fetch(
-        `https://devra-px58.onrender.com/datasets/upload`,
+        `http://localhost:5000/datasets/upload`,
         {
           method: "POST",
           body: form,
@@ -191,41 +181,53 @@ export default function MintDatasetModal({
 
       const uploadData = await uploadResponse.json();
       const datasetId = uploadData.datasetRecord?.id;
-      if (!datasetId) throw new Error("No dataset ID returned from server");
+
+      if (!datasetId) {
+        throw new Error("No dataset ID returned from server");
+      }
 
       setFormData((prev) => ({ ...prev, datasetId }));
 
-      // 4️⃣ Wait for IPFS upload (poll backend for status)
+      // 4️⃣ Poll backend for IPFS upload completion
       toast.loading("Processing and uploading to IPFS...", { id: "minting" });
 
       let dataset;
       let attempts = 0;
-      const maxAttempts = 60;
+      const maxAttempts = 120; // 60 seconds timeout
+
       while (attempts < maxAttempts) {
         const statusResponse = await fetch(
-          `https://devra-px58.onrender.com/blockchain/dataset/${datasetId}`
+          `http://localhost:5000/blockchain/dataset/${datasetId}`
         );
+
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
-          if (statusData.data.status === "uploaded") {
+
+          if (statusData.data.status === "uploaded" && statusData.data.cid) {
             dataset = statusData.data;
             break;
           }
         }
+
         await new Promise((r) => setTimeout(r, 1000));
         attempts++;
       }
 
-      if (!dataset || dataset.status !== "uploaded") {
-        throw new Error("Dataset upload to IPFS timeout or failed");
+      if (!dataset || dataset.status !== "uploaded" || !dataset.cid) {
+        throw new Error("Dataset upload to IPFS failed or timed out");
       }
 
-      // 5️⃣ Trigger minting
-      toast.loading("Minting your dataset NFT...", { id: "minting" });
-      await mint(dataset.cid); // ✅ Hook handles success/error and tokenId
+      // 5️⃣ Mint NFT on Asset Hub
+      toast.loading("Minting your dataset NFT on blockchain...", {
+        id: "minting",
+      });
 
-      // Do NOT await tokenId here — let the hook callback handle success
-      toast.loading("Awaiting blockchain confirmation...", { id: "minting" });
+      console.log("🎨 Minting with CID:", dataset.cid);
+
+      // ✅ Pass ONLY the CID to mint (your contract auto-assigns to msg.sender)
+      await mint(dataset.cid);
+
+      // Success will be handled by onSuccess callback above
     } catch (err: unknown) {
       console.error("❌ Process error:", err);
       let errorMessage = "Process failed";
@@ -285,7 +287,7 @@ export default function MintDatasetModal({
                       Mint Dataset NFT
                     </h2>
                     <p className="text-sm text-gray-400 mt-2 ml-14">
-                      AI-verified and encrypted dataset minting
+                      Encrypted and verified dataset minting on Asset Hub
                     </p>
                   </div>
                   <button
@@ -298,7 +300,7 @@ export default function MintDatasetModal({
                 </div>
               </div>
 
-              {/* Error State */}
+              {/* Error Display */}
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -308,25 +310,24 @@ export default function MintDatasetModal({
                   <div className="flex items-center gap-3">
                     <AlertCircle className="w-5 h-5 text-red-400" />
                     <div>
-                      <p className="text-red-400 font-medium">Error Occurred</p>
+                      <p className="text-red-400 font-medium">Error</p>
                       <p className="text-sm text-red-300/70">{error}</p>
                     </div>
                   </div>
                 </motion.div>
               )}
 
-              {/* Backend Integration Notice */}
+              {/* Info Notice */}
               <div className="m-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-semibold text-blue-400 mb-1">
-                      Backend Integration Pending
+                      Minting on Polkadot Asset Hub
                     </p>
                     <p className="text-blue-300/70">
-                      Full AI verification, encryption, and IPFS storage will be
-                      implemented when backend is ready. Currently minting with
-                      placeholder data.
+                      Your dataset will be encrypted, uploaded to IPFS, and
+                      minted as an NFT on Polkadots Asset Hub testnet.
                     </p>
                   </div>
                 </div>
@@ -479,7 +480,7 @@ export default function MintDatasetModal({
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Action Buttons */}
                   <div className="flex gap-4 pt-6">
                     <button
                       type="button"
@@ -495,45 +496,14 @@ export default function MintDatasetModal({
                         !formData.name ||
                         !formData.description ||
                         !formData.file ||
-                        formData.categories.length === 0
+                        formData.categories.length === 0 ||
+                        isMinting
                       }
                       className="flex-1 px-6 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                     >
                       <Sparkles className="w-5 h-5" />
-                      Mint Dataset
+                      {isMinting ? "Minting..." : "Mint Dataset"}
                     </button>
-                  </div>
-
-                  {/* Info */}
-                  <div className="pt-6 border-t border-white/10">
-                    <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-xl p-4 border border-pink-500/20">
-                      <div className="flex items-start gap-3">
-                        <Shield className="w-5 h-5 text-pink-400 flex-shrink-0 mt-1" />
-                        <div className="text-sm">
-                          <p className="font-semibold text-white mb-2">
-                            Secure 5-Step Process:
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-400">
-                            <div className="flex items-center gap-2">
-                              <Brain className="w-3 h-3 text-pink-500" />
-                              AI Quality Analysis
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Lock className="w-3 h-3 text-pink-500" />
-                              Data Encryption
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Database className="w-3 h-3 text-pink-500" />
-                              IPFS Storage
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="w-3 h-3 text-pink-500" />
-                              NFT Minting
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </motion.div>
               )}
@@ -560,8 +530,7 @@ export default function MintDatasetModal({
                       Processing Your Dataset
                     </h3>
                     <p className="text-gray-400">
-                      Please wait while we verify, encrypt, and mint your
-                      dataset NFT...
+                      Encrypting, uploading to IPFS, and minting your NFT...
                     </p>
                   </div>
                 </motion.div>
@@ -591,8 +560,7 @@ export default function MintDatasetModal({
                       Successfully Minted! 🎉
                     </h3>
                     <p className="text-gray-400 mb-8">
-                      Your dataset NFT has been created and is now live on the
-                      blockchain
+                      Your dataset NFT is now live on Polkadot Asset Hub
                     </p>
                     <p className="text-sm text-gray-500">
                       Closing automatically...
