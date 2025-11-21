@@ -7,12 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // CRITICAL: Enable JSON body parser with increased limit
-  app.enableCors({
-    origin: ['http://localhost:3000'], // Add your frontend URLs
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  });
+app.enableCors({
+  origin: ['http://localhost:3000', 'https://devra.vercel.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+});
+
 
   // Enable validation pipes
   app.useGlobalPipes(
