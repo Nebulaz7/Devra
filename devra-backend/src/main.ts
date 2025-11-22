@@ -36,7 +36,5 @@ app.enableCors({
   SwaggerModule.setup('api', app, document);
 
   await app.listen(5000);
-  console.log('🚀 Server running on http://localhost:5000');
-  console.log('📚 API Docs available at http://localhost:5000/api');
 }
 bootstrap();
