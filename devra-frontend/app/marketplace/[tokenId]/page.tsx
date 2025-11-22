@@ -348,7 +348,7 @@ export default function DatasetDetailPage() {
                       transition={{ delay: 0.5, duration: 0.5 }}
                       className="text-5xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent"
                     >
-                      {dataset.score}%
+                      --%
                     </motion.span>
                     <span className="text-sm text-gray-400 mt-1">
                       Quality Score
@@ -371,9 +371,7 @@ export default function DatasetDetailPage() {
                   <div className="bg-white/5 rounded-xl p-4 text-center border border-white/10">
                     <TrendingUp className="w-6 h-6 text-purple-500 mx-auto mb-2" />
                     <p className="text-xs text-gray-400 mb-1">Completeness</p>
-                    <p className="text-lg font-bold text-white">
-                      {dataset.score}%
-                    </p>
+                    <p className="text-lg font-bold text-white">--%</p>
                   </div>
                 </div>
               </motion.div>
