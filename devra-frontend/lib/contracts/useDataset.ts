@@ -16,17 +16,21 @@ const publicClient = createPublicClient({
   transport: http(westendAssetHub.rpcUrls.default.http[0]),
 });
 
-interface Dataset {
+// Update the Dataset interface to include optional metadata fields
+export interface Dataset {
   tokenId: number;
   cid: `0x${string}`;
   score: number;
   price: bigint;
   creator: `0x${string}`;
   isListed: boolean;
+  name?: string; //  Added
+  description?: string; //  Added (useful for future)
+  category?: string; //  Added (useful for filtering)
 }
 
 export function useAllDatasets() {
-  const [datasets, setDatasets] = useState<Dataset[]>([]); // Changed from any[] to Dataset[]
+  const [datasets, setDatasets] = useState<Dataset[]>([]); // Now uses the exported Dataset type
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
