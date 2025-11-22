@@ -171,9 +171,14 @@ export default function MintDatasetModal({
             params: [{ chainId: WESTEND_ASSET_HUB_CHAIN_ID }],
           });
           toast.success("Network switched!", { id: "network" });
-        } catch (switchError: any) {
+        } catch (switchError: unknown) {
           // Chain not added to MetaMask
-          if (switchError.code === 4902) {
+          if (
+            switchError &&
+            typeof switchError === "object" &&
+            "code" in switchError &&
+            switchError.code === 4902
+          ) {
             toast.loading("Adding Westend Asset Hub to MetaMask...", {
               id: "network",
             });
