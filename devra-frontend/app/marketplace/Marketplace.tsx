@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import { useAllDatasets } from "@/lib/contracts/useDataset";
 import Banner from "./components/Banner";
 import DatasetCard from "./components/DatasetCard";
@@ -47,6 +48,7 @@ interface Dataset {
 
 const Marketplace = () => {
   const { address, isConnected } = useAccount();
+  const router = useRouter();
   
   // Use the new hook to fetch all datasets
   const { 
@@ -65,6 +67,7 @@ const Marketplace = () => {
 
   // Filter and sort whenever datasets or filters change
   useEffect(() => {
+    console.log("🔍 All datasets from hook:", allDatasets);
     filterAndSortDatasets();
   }, [allDatasets, searchQuery, selectedCategory, sortBy]);
 
@@ -83,8 +86,8 @@ const Marketplace = () => {
   };
 
   const filterAndSortDatasets = () => {
-    // Only show listed datasets
-    let filtered = allDatasets.filter((d) => d.isListed);
+    // Show all minted datasets (no need to be listed)
+    let filtered = [...allDatasets];
 
     // Search filter
     if (searchQuery) {
@@ -126,8 +129,9 @@ const Marketplace = () => {
       toast.error("Please connect your wallet");
       return;
     }
-    // TODO: Implement purchase logic with useBuyDataset hook
-    toast.success(`Purchasing Dataset #${dataset.tokenId}...`);
+    
+    // Navigate to dataset details or open purchase modal
+    router.push(`/marketplace/${dataset.tokenId}`);
   };
 
   const currentSort = SORT_OPTIONS.find((opt) => opt.value === sortBy);

@@ -15,38 +15,25 @@ import {
   Loader2,
   Tag,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import { blo } from "blo";
 import toast from "react-hot-toast";
 import {
-  useUserBalance,
-  useDatasetInfo,
+  useAllDatasets,
   useListDataset,
   useCancelListing,
 } from "@/lib/contracts/useDataset";
 import {
-  DATASET_NFT_ADDRESS,
   formatWND,
-  parseWND,
   getTxExplorerUrl,
   getTokenExplorerUrl,
 } from "@/lib/contracts/config";
 import Banner from "./components/Banner";
 import MintDatasetModal from "./components/MintDatasetModal";
 import DatasetStats from "./components/DatasetStats";
-
-interface DatasetDisplay {
-  tokenId: number;
-  name: string;
-  cid: string;
-  score: number;
-  price: bigint;
-  creator: string;
-  isListed: boolean;
-  createdAt?: number;
-}
 
 interface ListModalData {
   tokenId: number;
@@ -57,14 +44,14 @@ interface ListModalData {
 export default function Datasets() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  
+  // Fetch all datasets
   const {
-    balance: nftBalance,
-    isLoading: isLoadingBalance,
-    refetch: refetchBalance,
-  } = useUserBalance(address);
+    datasets: allDatasets,
+    isLoading: isLoadingDatasets,
+    refetch: refetchDatasets,
+  } = useAllDatasets();
 
-  const [datasets, setDatasets] = useState<DatasetDisplay[]>([]);
-  const [isLoadingDatasets, setIsLoadingDatasets] = useState(true);
   const [mintModalOpen, setMintModalOpen] = useState(false);
   const [listModalOpen, setListModalOpen] = useState(false);
   const [listModalData, setListModalData] = useState<ListModalData | null>(
@@ -75,6 +62,11 @@ export default function Datasets() {
 
   const itemsPerPage = 10;
 
+  // Filter to show only user's datasets
+  const myDatasets = allDatasets.filter(
+    (d) => d.creator.toLowerCase() === address?.toLowerCase()
+  );
+
   // Redirect if not connected
   useEffect(() => {
     if (!isConnected) {
@@ -82,41 +74,6 @@ export default function Datasets() {
       router.push("/connect");
     }
   }, [isConnected, router]);
-
-  // Fetch datasets when user connects
-  useEffect(() => {
-  if (address && isConnected) {
-    fetchDatasets();
-  }
-}, [address, isConnected, nftBalance]);
-
-  const fetchDatasets = async () => {
-    if (!address || nftBalance === 0) {
-      setIsLoadingDatasets(false);
-      return;
-    }
-
-    setIsLoadingDatasets(true);
-    try {
-      // Mock data for now - replace with actual contract calls
-      // In production, you'd iterate through token IDs and fetch data for each
-      const mockDatasets: DatasetDisplay[] = [];
-
-      // TODO: Implement actual dataset fetching
-      // for (let i = 1; i <= nftBalance; i++) {
-      //   const dataset = await useDatasetInfo(i);
-      //   if (dataset) mockDatasets.push(dataset);
-      // }
-
-      setDatasets(mockDatasets);
-      toast.success(`Loaded ${mockDatasets.length} datasets`);
-    } catch (error) {
-      console.error("Error fetching datasets:", error);
-      toast.error("Failed to load datasets");
-    } finally {
-      setIsLoadingDatasets(false);
-    }
-  };
 
   const openListModal = (tokenId: number, currentPrice?: string) => {
     setListModalData({
@@ -128,15 +85,15 @@ export default function Datasets() {
   };
 
   const calculateStats = () => {
-    const totalDatasets = nftBalance;
-    const listedCount = datasets.filter((d) => d.isListed).length;
+    const totalDatasets = myDatasets.length;
+    const listedCount = myDatasets.filter((d) => d.isListed).length;
     const avgQuality =
-      datasets.length > 0
+      myDatasets.length > 0
         ? `${Math.round(
-            datasets.reduce((acc, d) => acc + d.score, 0) / datasets.length
+            myDatasets.reduce((acc, d) => acc + d.score, 0) / myDatasets.length
           )}%`
         : "0%";
-    const totalValue = datasets
+    const totalValue = myDatasets
       .filter((d) => d.isListed && d.price)
       .reduce((acc, d) => acc + parseFloat(formatWND(d.price)), 0)
       .toFixed(4);
@@ -144,10 +101,10 @@ export default function Datasets() {
     return { totalDatasets, listedCount, avgQuality, totalValue };
   };
 
-  const totalPages = Math.ceil(datasets.length / itemsPerPage);
+  const totalPages = Math.ceil(myDatasets.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentDatasets = datasets.slice(startIndex, endIndex);
+  const currentDatasets = myDatasets.slice(startIndex, endIndex);
   const stats = calculateStats();
 
   const getStatusBadge = (score: number) => {
@@ -198,7 +155,7 @@ export default function Datasets() {
           listedCount={stats.listedCount}
           totalValue={stats.totalValue}
           avgQuality={stats.avgQuality}
-          isLoading={isLoadingBalance}
+          isLoading={isLoadingDatasets}
         />
 
         {/* Datasets Table */}
@@ -213,11 +170,20 @@ export default function Datasets() {
                   My Datasets
                 </h2>
                 <p className="text-xs text-gray-400">
-                  {nftBalance} dataset{nftBalance === 1 ? "" : "s"} owned
+                  {myDatasets.length} dataset{myDatasets.length === 1 ? "" : "s"} owned
                 </p>
               </div>
             </div>
-            <div>
+            <div className="flex gap-2">
+              <motion.button
+                onClick={() => refetchDatasets()}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-full font-medium flex items-center gap-2 transition-all border border-white/10"
+              >
+                <RefreshCw className="w-5 h-5" />
+                <span className="hidden sm:inline">Refresh</span>
+              </motion.button>
               <motion.button
                 onClick={() => setMintModalOpen(true)}
                 whileHover={{ scale: 1.05 }}
@@ -231,7 +197,7 @@ export default function Datasets() {
             </div>
           </div>
 
-          {isLoadingDatasets || isLoadingBalance ? (
+          {isLoadingDatasets ? (
             <div className="flex items-center justify-center py-24">
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-pink-500 mx-auto mb-3" />
@@ -240,7 +206,7 @@ export default function Datasets() {
                 </p>
               </div>
             </div>
-          ) : datasets.length === 0 ? (
+          ) : myDatasets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24">
               <FolderOpen className="w-16 h-16 text-gray-600 mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">
@@ -303,6 +269,8 @@ export default function Datasets() {
                                 <Image
                                   src={avatarUrl}
                                   alt="Creator"
+                                  width={40}
+                                  height={40}
                                   className="w-10 h-10 rounded-lg border-2 border-pink-500/20"
                                 />
                                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-pink-500 rounded-full flex items-center justify-center">
@@ -357,7 +325,7 @@ export default function Datasets() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2 text-sm text-gray-400">
                               <Calendar className="w-4 h-4" />
-                              {formatDate(dataset.createdAt)}
+                              Recently
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -395,7 +363,7 @@ export default function Datasets() {
                                       </button>
                                       <CancelListingButton
                                         tokenId={dataset.tokenId}
-                                        onSuccess={fetchDatasets}
+                                        onSuccess={refetchDatasets}
                                         onLoading={(loading) =>
                                           setActionLoading(
                                             loading ? dataset.tokenId : null
@@ -430,7 +398,7 @@ export default function Datasets() {
                 <div className="px-6 py-4 border-t border-pink-500/20 flex items-center justify-between bg-white/5">
                   <div className="text-sm text-gray-400">
                     Showing {startIndex + 1} to{" "}
-                    {Math.min(endIndex, datasets.length)} of {datasets.length}
+                    {Math.min(endIndex, myDatasets.length)} of {myDatasets.length}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -479,8 +447,7 @@ export default function Datasets() {
         isOpen={mintModalOpen}
         onClose={() => setMintModalOpen(false)}
         onSuccess={() => {
-          refetchBalance();
-          fetchDatasets();
+          refetchDatasets();
           toast.success("Dataset minted successfully!");
         }}
       />
@@ -495,7 +462,7 @@ export default function Datasets() {
         tokenId={listModalData?.tokenId}
         currentPrice={listModalData?.currentPrice}
         isUpdate={listModalData?.isUpdate || false}
-        onSuccess={fetchDatasets}
+        onSuccess={refetchDatasets}
       />
     </div>
   );

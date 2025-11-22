@@ -11,10 +11,13 @@ import {
   Tags,
   FileText,
   Info,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useMintDataset } from "@/lib/contracts/useDataset";
 import { useWallet } from "@/hooks/useWallet";
+import { useBalance } from "wagmi";
 
 interface MintDatasetModalProps {
   isOpen: boolean;
@@ -39,6 +42,8 @@ const CATEGORIES = [
   { id: "gaming", label: "Gaming" },
 ];
 
+const WESTEND_ASSET_HUB_CHAIN_ID = "0x190f1b45"; // 420420421 in hex
+
 export default function MintDatasetModal({
   isOpen,
   onClose,
@@ -53,13 +58,21 @@ export default function MintDatasetModal({
     datasetId: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState({
+    step: 1,
+    message: "Preparing upload...",
+  });
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [mintedTokenId, setMintedTokenId] = useState<number | null>(null);
 
   const { address } = useWallet();
+  const { data: balance } = useBalance({ address });
 
   // ✅ Use your existing mint hook
-  const { mint, isMinting } = useMintDataset({
+  const { mint, isMinting, hash } = useMintDataset({
     onSuccess: async (tokenId: number) => {
       console.log("✅ NFT minted successfully! Token ID:", tokenId);
+      setMintedTokenId(tokenId);
       toast.success(`Dataset NFT minted! Token ID: ${tokenId}`, {
         id: "minting",
       });
@@ -79,11 +92,11 @@ export default function MintDatasetModal({
 
       setFormStep("success");
 
-      // Auto-close after 3 seconds
+      // Auto-close after 5 seconds
       setTimeout(() => {
         handleClose();
         onSuccess();
-      }, 3000);
+      }, 5000);
     },
     onError: (err: Error) => {
       console.error("❌ Minting failed:", err);
@@ -92,6 +105,13 @@ export default function MintDatasetModal({
       setFormStep("details");
     },
   });
+
+  // Update txHash when hash changes
+  React.useEffect(() => {
+    if (hash) {
+      setTxHash(hash);
+    }
+  }, [hash]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,6 +149,73 @@ export default function MintDatasetModal({
     }));
   };
 
+  const checkAndSwitchNetwork = async () => {
+    if (!window.ethereum) {
+      throw new Error("MetaMask not installed");
+    }
+
+    try {
+      const currentChainId = await window.ethereum.request({
+        method: "eth_chainId",
+      });
+
+      console.log("Current chain:", currentChainId);
+      console.log("Expected chain:", WESTEND_ASSET_HUB_CHAIN_ID);
+
+      if (currentChainId !== WESTEND_ASSET_HUB_CHAIN_ID) {
+        toast.loading("Switching to Westend Asset Hub...", { id: "network" });
+
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: WESTEND_ASSET_HUB_CHAIN_ID }],
+          });
+          toast.success("Network switched!", { id: "network" });
+        } catch (switchError: unknown) {
+          // Chain not added to MetaMask
+          if (
+            switchError &&
+            typeof switchError === "object" &&
+            "code" in switchError &&
+            switchError.code === 4902
+          ) {
+            toast.loading("Adding Westend Asset Hub to MetaMask...", {
+              id: "network",
+            });
+
+            await window.ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: WESTEND_ASSET_HUB_CHAIN_ID,
+                  chainName: "Westend Asset Hub",
+                  rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
+                  nativeCurrency: {
+                    name: "WND",
+                    symbol: "WND",
+                    decimals: 12,
+                  },
+                  blockExplorerUrls: [
+                    "https://blockscout-asset-hub.parity-chains-scw.parity.io",
+                  ],
+                },
+              ],
+            });
+
+            toast.success("Network added and switched!", { id: "network" });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Network switch error:", err);
+      throw new Error(
+        "Failed to switch network. Please switch manually to Westend Asset Hub."
+      );
+    }
+  };
+
   const handleStartProcess = async () => {
     const walletAddress = address;
 
@@ -153,12 +240,33 @@ export default function MintDatasetModal({
       return;
     }
 
+    // 3️⃣ Check balance for gas
+    if (balance && balance.value < 100000000000n) {
+      setError("Insufficient WND balance for gas fees");
+      toast.error(
+        "You need WND for gas. Get it from: https://faucet.polkadot.io/westend?parachain=1000"
+      );
+      return;
+    }
+
     setError(null);
     setFormStep("processing");
-    toast.loading("Uploading dataset to backend...", { id: "minting" });
 
     try {
-      // 3️⃣ Upload dataset to backend
+      // 4️⃣ Check and switch network if needed
+      setUploadProgress({
+        step: 1,
+        message: "Checking network connection...",
+      });
+      await checkAndSwitchNetwork();
+
+      // 5️⃣ Upload dataset to backend
+      setUploadProgress({
+        step: 1,
+        message: "Uploading dataset to backend...",
+      });
+      toast.loading("Uploading dataset to backend...", { id: "minting" });
+
       const form = new FormData();
       form.append("name", formData.name);
       form.append("description", formData.description);
@@ -188,7 +296,11 @@ export default function MintDatasetModal({
 
       setFormData((prev) => ({ ...prev, datasetId }));
 
-      // 4️⃣ Poll backend for IPFS upload completion
+      // 6️⃣ Poll backend for IPFS upload completion
+      setUploadProgress({
+        step: 2,
+        message: "Encrypting and uploading to IPFS...",
+      });
       toast.loading("Processing and uploading to IPFS...", { id: "minting" });
 
       let dataset;
@@ -217,7 +329,11 @@ export default function MintDatasetModal({
         throw new Error("Dataset upload to IPFS failed or timed out");
       }
 
-      // 5️⃣ Mint NFT on Asset Hub
+      // 7️⃣ Mint NFT on Asset Hub
+      setUploadProgress({
+        step: 3,
+        message: "Minting your dataset NFT on blockchain...",
+      });
       toast.loading("Minting your dataset NFT on blockchain...", {
         id: "minting",
       });
@@ -251,6 +367,9 @@ export default function MintDatasetModal({
       });
       setFormStep("details");
       setError(null);
+      setTxHash(null);
+      setMintedTokenId(null);
+      setUploadProgress({ step: 1, message: "Preparing upload..." });
       onClose();
     }
   };
@@ -327,11 +446,42 @@ export default function MintDatasetModal({
                     </p>
                     <p className="text-blue-300/70">
                       Your dataset will be encrypted, uploaded to IPFS, and
-                      minted as an NFT on Polkadots Asset Hub testnet.
+                      minted as an NFT on Polkadot&apos;s Asset Hub testnet.
                     </p>
                   </div>
                 </div>
               </div>
+
+              {/* Balance Warning */}
+              {address && balance && balance.value < 100000000000n && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="m-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl"
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-yellow-400 mb-1">
+                        Low WND Balance
+                      </p>
+                      <p className="text-yellow-300/70 mb-2">
+                        You may not have enough WND for gas fees. Get WND from
+                        the faucet:
+                      </p>
+                      <a
+                        href="https://faucet.polkadot.io/westend?parachain=1000"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 underline"
+                      >
+                        Westend Asset Hub Faucet
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Form Step */}
               {formStep === "details" && (
@@ -517,6 +667,59 @@ export default function MintDatasetModal({
                   className="p-12"
                 >
                   <div className="text-center max-w-md mx-auto">
+                    {/* Progress Steps */}
+                    <div className="flex items-center justify-center gap-2 mb-8">
+                      {[
+                        { num: 1, label: "Upload" },
+                        { num: 2, label: "IPFS" },
+                        { num: 3, label: "Mint" },
+                      ].map((s, idx) => (
+                        <React.Fragment key={s.num}>
+                          <div className="flex flex-col items-center gap-2">
+                            <motion.div
+                              animate={
+                                uploadProgress.step === s.num
+                                  ? { scale: [1, 1.1, 1] }
+                                  : {}
+                              }
+                              transition={{
+                                duration: 1,
+                                repeat:
+                                  uploadProgress.step === s.num ? Infinity : 0,
+                              }}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
+                                uploadProgress.step > s.num
+                                  ? "bg-green-500 text-white"
+                                  : uploadProgress.step === s.num
+                                  ? "bg-pink-500 text-white"
+                                  : "bg-white/10 text-gray-500"
+                              }`}
+                            >
+                              {uploadProgress.step > s.num ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : uploadProgress.step === s.num ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                s.num
+                              )}
+                            </motion.div>
+                            <span className="text-xs text-gray-400">
+                              {s.label}
+                            </span>
+                          </div>
+                          {idx < 2 && (
+                            <div
+                              className={`w-12 h-0.5 mb-6 transition-all ${
+                                uploadProgress.step > s.num
+                                  ? "bg-green-500"
+                                  : "bg-white/10"
+                              }`}
+                            />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{
@@ -527,10 +730,10 @@ export default function MintDatasetModal({
                       className="w-20 h-20 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-6"
                     />
                     <h3 className="text-2xl font-bold text-white mb-2">
-                      Processing Your Dataset
+                      {uploadProgress.message}
                     </h3>
-                    <p className="text-gray-400">
-                      Encrypting, uploading to IPFS, and minting your NFT...
+                    <p className="text-gray-400 text-sm">
+                      Please don&apos;t close this window...
                     </p>
                   </div>
                 </motion.div>
@@ -559,11 +762,37 @@ export default function MintDatasetModal({
                     <h3 className="text-4xl font-bold text-white mb-3">
                       Successfully Minted! 🎉
                     </h3>
-                    <p className="text-gray-400 mb-8">
+                    <p className="text-gray-400 mb-2">
                       Your dataset NFT is now live on Polkadot Asset Hub
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Closing automatically...
+
+                    {/* Token ID Display */}
+                    {mintedTokenId !== null && (
+                      <div className="inline-block px-6 py-3 bg-pink-500/20 border border-pink-500/50 rounded-xl mb-6">
+                        <p className="text-sm text-gray-400">Token ID</p>
+                        <p className="text-3xl font-bold text-pink-400">
+                          #{mintedTokenId}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Transaction Link */}
+                    {txHash && (
+                      <div className="mt-6 flex flex-col gap-3">
+                        <a
+                          href={`https://blockscout-asset-hub.parity-chains-scw.parity.io/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-pink-500/20 border border-pink-500/50 rounded-xl text-pink-400 hover:bg-pink-500/30 transition-colors"
+                        >
+                          <span>View on Explorer</span>
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                    )}
+
+                    <p className="text-sm text-gray-500 mt-8">
+                      Closing automatically in 5 seconds...
                     </p>
                   </div>
                 </motion.div>
