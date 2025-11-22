@@ -12,15 +12,24 @@ import { westendAssetHub } from "../wagmi";
 
 // Public RPC client for Asset Hub
 const publicClient = createPublicClient({
-  chain: westendAssetHub,        // 👈 use the Chain object exported from lib/wagmi
+  chain: westendAssetHub, // 👈 use the Chain object exported from lib/wagmi
   transport: http(westendAssetHub.rpcUrls.default.http[0]),
 });
 
+interface Dataset {
+  tokenId: number;
+  cid: `0x${string}`;
+  score: number;
+  price: bigint;
+  creator: `0x${string}`;
+  isListed: boolean;
+}
+
 export function useAllDatasets() {
-  const [datasets, setDatasets] = useState<any[]>([]);
+  const [datasets, setDatasets] = useState<Dataset[]>([]); // Changed from any[] to Dataset[]
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  
+
   const { total: totalSupply, refetch: refetchTotal } = useTotalSupply();
 
   const fetchAllDatasets = useCallback(async () => {
@@ -35,9 +44,9 @@ export function useAllDatasets() {
 
     try {
       console.log("📊 Fetching all datasets, total supply:", totalSupply);
-      
+
       const datasetPromises = [];
-      
+
       // Fetch all datasets from token ID 1 to totalSupply
       for (let tokenId = 1; tokenId <= totalSupply; tokenId++) {
         datasetPromises.push(
@@ -51,11 +60,11 @@ export function useAllDatasets() {
       }
 
       const results = await Promise.all(datasetPromises);
-      
+
       const formattedDatasets = results
         .map((data, index) => {
           if (!data) return null;
-          
+
           const [cid, score, price, creator, listed] = data as [
             `0x${string}`,
             bigint,
@@ -112,7 +121,7 @@ export function useMintDataset(options?: {
     address: DATASET_NFT_ADDRESS,
     abi: DatasetNFTAbi,
     functionName: "total",
-    query: { enabled: false }
+    query: { enabled: false },
   });
 
   const { writeContractAsync } = useWriteContract();
@@ -120,85 +129,93 @@ export function useMintDataset(options?: {
   // -----------------------------
   // 🚀 MAIN MINT FUNCTION
   // -----------------------------
-  const mint = useCallback(async (cid: string) => {
-    try {
-      setError(null);
-      setIsMinting(true);
-      setTokenId(undefined);
+  const mint = useCallback(
+    async (cid: string) => {
+      try {
+        setError(null);
+        setIsMinting(true);
+        setTokenId(undefined);
 
-      console.log("🚀 Starting mint on Asset Hub with CID:", cid);
+        console.log("🚀 Starting mint on Asset Hub with CID:", cid);
 
-      // --- 1️⃣ Token supply before ---
-      const beforeRes = await refetchTotal();
-      const beforeSupply = Number(beforeRes.data ?? 0);
-      console.log("📌 Token supply before:", beforeSupply);
+        // --- 1️⃣ Token supply before ---
+        const beforeRes = await refetchTotal();
+        const beforeSupply = Number(beforeRes.data ?? 0);
+        console.log("📌 Token supply before:", beforeSupply);
 
-      console.log("📡 MetaMask chainId:", await window.ethereum.request({ method: "eth_chainId" }));
+        console.log(
+          "📡 MetaMask chainId:",
+          await window.ethereum.request({ method: "eth_chainId" })
+        );
 
-      // --- 2️⃣ Send TX (WITH chainId) ---
-const txHash = await writeContractAsync({
-  chainId: westendAssetHub.id,
-  address: DATASET_NFT_ADDRESS,
-  abi: DatasetNFTAbi,
-  functionName: "mint",
-  args: [cid],
-  gas: 3_000_000n,          // 👈 REQUIRED
-  gasPrice: 1_000_000_000n, // 👈 REQUIRED
-  value: 0n,                // 👈 ALWAYS for nonpayable
-});
+        // --- 2️⃣ Send TX (WITH chainId) ---
+        const txHash = await writeContractAsync({
+          chainId: westendAssetHub.id,
+          address: DATASET_NFT_ADDRESS,
+          abi: DatasetNFTAbi,
+          functionName: "mint",
+          args: [cid],
+          gas: 3_000_000n, // 👈 REQUIRED
+          gasPrice: 1_000_000_000n, // 👈 REQUIRED
+          value: 0n, // 👈 ALWAYS for nonpayable
+        });
 
-      console.log("📨 TX Sent:", txHash);
-      setHash(txHash);
+        console.log("📨 TX Sent:", txHash);
+        setHash(txHash);
 
-      // --- 3️⃣ Manual polling for receipt ---
-      console.log("⏳ Waiting for receipt…");
-      let receipt = null;
+        // --- 3️⃣ Manual polling for receipt ---
+        console.log("⏳ Waiting for receipt…");
+        let receipt = null;
 
-      for (let i = 0; i < 60; i++) {
-        try {
-          receipt = await publicClient.getTransactionReceipt({ hash: txHash });
-        } catch (_) {}
+        for (let i = 0; i < 60; i++) {
+          try {
+            receipt = await publicClient.getTransactionReceipt({
+              hash: txHash,
+            });
+          } catch (_) {}
 
-        if (receipt) break;
-        await new Promise(res => setTimeout(res, 2000));
+          if (receipt) break;
+          await new Promise((res) => setTimeout(res, 2000));
+        }
+
+        if (!receipt)
+          throw new Error("Transaction not included in block (timeout)");
+
+        console.log("🧾 Receipt obtained!");
+
+        // --- 4️⃣ Wait for total() to increase ---
+        console.log("⏳ Waiting for total() to increase...");
+        let newSupply = beforeSupply;
+
+        for (let i = 0; i < 60; i++) {
+          const r = await refetchTotal();
+          newSupply = Number(r.data ?? 0);
+
+          console.log(`🔍 total() = ${newSupply}`);
+
+          if (newSupply > beforeSupply) break;
+          await new Promise((res) => setTimeout(res, 2000));
+        }
+
+        if (newSupply === beforeSupply)
+          throw new Error("Mint confirmed but token supply did not update");
+
+        const mintedId = newSupply;
+        console.log("🎉 Token ID:", mintedId);
+
+        setTokenId(mintedId);
+        options?.onSuccess?.(mintedId);
+      } catch (err: unknown) {
+        console.error("❌ Mint error:", err);
+        const caughtError = err instanceof Error ? err : new Error(String(err));
+        setError(caughtError);
+        options?.onError?.(caughtError);
+      } finally {
+        setIsMinting(false);
       }
-
-      if (!receipt) throw new Error("Transaction not included in block (timeout)");
-
-      console.log("🧾 Receipt obtained!");
-
-      // --- 4️⃣ Wait for total() to increase ---
-      console.log("⏳ Waiting for total() to increase...");
-      let newSupply = beforeSupply;
-
-      for (let i = 0; i < 60; i++) {
-        const r = await refetchTotal();
-        newSupply = Number(r.data ?? 0);
-
-        console.log(`🔍 total() = ${newSupply}`);
-
-        if (newSupply > beforeSupply) break;
-        await new Promise(res => setTimeout(res, 2000));
-      }
-
-      if (newSupply === beforeSupply)
-        throw new Error("Mint confirmed but token supply did not update");
-
-      const mintedId = newSupply;
-      console.log("🎉 Token ID:", mintedId);
-
-      setTokenId(mintedId);
-      options?.onSuccess?.(mintedId);
-
-    } catch (err: unknown) {
-      console.error("❌ Mint error:", err);
-      const caughtError = err instanceof Error ? err : new Error(String(err));
-      setError(caughtError);
-      options?.onError?.(caughtError);
-    } finally {
-      setIsMinting(false);
-    }
-  }, [refetchTotal, writeContractAsync, options]);
+    },
+    [refetchTotal, writeContractAsync, options]
+  );
 
   return {
     mint,
