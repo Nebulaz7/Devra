@@ -4,6 +4,7 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { DATASET_NFT_ADDRESS, parseWND } from "./config";
+import { useEffect } from "react";
 import { DatasetNFTAbi } from "./DatasetNFT";
 import { useState, useCallback } from "react";
 import { createPublicClient, http } from "viem";
@@ -15,6 +16,88 @@ const publicClient = createPublicClient({
   transport: http(westendAssetHub.rpcUrls.default.http[0]),
 });
 
+export function useAllDatasets() {
+  const [datasets, setDatasets] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  
+  const { total: totalSupply, refetch: refetchTotal } = useTotalSupply();
+
+  const fetchAllDatasets = useCallback(async () => {
+    if (!totalSupply || totalSupply === 0) {
+      setDatasets([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log("📊 Fetching all datasets, total supply:", totalSupply);
+      
+      const datasetPromises = [];
+      
+      // Fetch all datasets from token ID 1 to totalSupply
+      for (let tokenId = 1; tokenId <= totalSupply; tokenId++) {
+        datasetPromises.push(
+          publicClient.readContract({
+            address: DATASET_NFT_ADDRESS,
+            abi: DatasetNFTAbi,
+            functionName: "data",
+            args: [BigInt(tokenId)],
+          })
+        );
+      }
+
+      const results = await Promise.all(datasetPromises);
+      
+      const formattedDatasets = results
+        .map((data, index) => {
+          if (!data) return null;
+          
+          const [cid, score, price, creator, listed] = data as [
+            `0x${string}`,
+            bigint,
+            bigint,
+            `0x${string}`,
+            boolean
+          ];
+
+          return {
+            tokenId: index + 1,
+            cid,
+            score: Number(score),
+            price,
+            creator,
+            isListed: listed,
+          };
+        })
+        .filter((d) => d !== null); // Remove any null values
+
+      console.log("✅ Fetched datasets:", formattedDatasets);
+      setDatasets(formattedDatasets);
+    } catch (err) {
+      console.error("Error fetching all datasets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [totalSupply]);
+
+  // Fetch on mount and when totalSupply changes
+  useEffect(() => {
+    fetchAllDatasets();
+  }, [fetchAllDatasets]);
+
+  return {
+    datasets,
+    isLoading,
+    error,
+    refetch: fetchAllDatasets,
+    refetchTotal,
+  };
+}
 export function useMintDataset(options?: {
   onSuccess?: (tokenId: number) => void;
   onError?: (err: Error) => void;
@@ -155,7 +238,6 @@ export function useListDataset() {
     hash,
   };
 }
-
 /**
  * Hook for buying a dataset
  */

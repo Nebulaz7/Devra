@@ -50,8 +50,7 @@ export class UploadController {
         issues: verification.issues,
         status: verification.status,
       });
-      
-      // Fallback verification with 70% score
+
       const fallbackVerification: VerifyResultDto = {
         isValid: true,
         scores: { overall: 70 },

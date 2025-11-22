@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAccount } from "wagmi";
 import toast from "react-hot-toast";
-import { useTotalSupply } from "@/lib/contracts/useDataset";
+import { useAllDatasets } from "@/lib/contracts/useDataset";
 import Banner from "./components/Banner";
 import DatasetCard from "./components/DatasetCard";
 
@@ -47,66 +47,34 @@ interface Dataset {
 
 const Marketplace = () => {
   const { address, isConnected } = useAccount();
-  const { total: totalSupply } = useTotalSupply();
+  
+  // Use the new hook to fetch all datasets
+  const { 
+    datasets: allDatasets, 
+    isLoading, 
+    refetch: refetchDatasets,
+    refetchTotal 
+  } = useAllDatasets();
 
-  const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [filteredDatasets, setFilteredDatasets] = useState<Dataset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("recent");
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchMarketplaceData();
-  }, [totalSupply]);
-
+  // Filter and sort whenever datasets or filters change
   useEffect(() => {
     filterAndSortDatasets();
-  }, [datasets, searchQuery, selectedCategory, sortBy]);
-
-  const fetchMarketplaceData = async () => {
-    setIsLoading(true);
-    try {
-      // TODO: Fetch real data from contract
-      // For now, using mock data
-      const mockDatasets: Dataset[] = [
-        {
-          tokenId: 1,
-          name: "Medical Imaging Dataset",
-          creator: "0x1234567890123456789012345678901234567890",
-          price: BigInt("1500000000000"), // 1.5 WND
-          score: 95,
-          cid: "QmX7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T",
-          isListed: true,
-        },
-        {
-          tokenId: 2,
-          name: "NLP Training Corpus",
-          creator: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-          price: BigInt("2000000000000"), // 2 WND
-          score: 88,
-          cid: "QmA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W",
-          isListed: true,
-        },
-      ];
-
-      setDatasets(mockDatasets);
-      toast.success(`Loaded ${mockDatasets.length} datasets`);
-    } catch (error) {
-      console.error("Error fetching marketplace data:", error);
-      toast.error("Failed to load marketplace data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [allDatasets, searchQuery, selectedCategory, sortBy]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     toast.loading("Refreshing marketplace...", { id: "refresh" });
 
-    await fetchMarketplaceData();
+    // Refetch total supply and datasets
+    await refetchTotal();
+    await refetchDatasets();
 
     setTimeout(() => {
       setIsRefreshing(false);
@@ -115,7 +83,8 @@ const Marketplace = () => {
   };
 
   const filterAndSortDatasets = () => {
-    let filtered = [...datasets];
+    // Only show listed datasets
+    let filtered = allDatasets.filter((d) => d.isListed);
 
     // Search filter
     if (searchQuery) {
@@ -127,7 +96,7 @@ const Marketplace = () => {
       );
     }
 
-    // Category filter (would need category data from backend)
+    // Category filter (would need category data from backend/metadata)
     // if (selectedCategory !== "All") {
     //   filtered = filtered.filter(d => d.category === selectedCategory);
     // }
@@ -157,7 +126,7 @@ const Marketplace = () => {
       toast.error("Please connect your wallet");
       return;
     }
-    // TODO: Implement purchase logic
+    // TODO: Implement purchase logic with useBuyDataset hook
     toast.success(`Purchasing Dataset #${dataset.tokenId}...`);
   };
 
@@ -316,7 +285,7 @@ const Marketplace = () => {
             <p className="text-gray-400 text-center max-w-md mb-6">
               {searchQuery
                 ? `No results for "${searchQuery}". Try a different search term.`
-                : "No datasets are currently listed for sale. Check back soon!"}
+                : "No datasets are currently listed for sale. Mint and list your first dataset to get started!"}
             </p>
             {searchQuery && (
               <button
