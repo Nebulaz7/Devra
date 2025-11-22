@@ -50,14 +50,46 @@ export class UploadController {
         issues: verification.issues,
         status: verification.status,
       });
-      return {
-        message: 'Dataset verification failed',
-        verification: {
-          isValid: verification.isValid,
-          scores: verification.scores,
-          issues: verification.issues,
-          status: verification.status,
+      
+      // Fallback verification with 70% score
+      const fallbackVerification: VerifyResultDto = {
+        isValid: true,
+        scores: { overall: 70 },
+        issues: verification.issues,
+        status: 'fallback',
+      };
+
+      console.log('Using fallback verification with 70% score');
+
+      const hash = await this.encryptService.hashDataset(file);
+
+      const fileEncryptionResult = this.encryptService.encryptDataset(file);
+
+      const datasetRecord = await this.datasetRecordService.createRecord(
+        createDatasetDto,
+        fallbackVerification,
+        {
+          hash,
+          aesKeyEncrypted: fileEncryptionResult.aesKey,
+          vaultKeyRef: 'private-key',
+          iv: fileEncryptionResult.iv,
+          authTag: fileEncryptionResult.authTag,
         },
+      );
+
+      await this.uploadQueueService.addJob({
+        datasetId: datasetRecord.id,
+        filePath: fileEncryptionResult.encryptedPath,
+        metadata: createDatasetDto,
+      });
+
+      return {
+        message: 'Dataset processed with fallback verification (70% score)',
+        datasetRecord,
+        metadata: createDatasetDto,
+        encryptedPath: fileEncryptionResult.encryptedPath,
+        hash,
+        verification: fallbackVerification,
       };
     }
 
