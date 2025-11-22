@@ -260,6 +260,15 @@ export default function MintDatasetModal({
       });
       await checkAndSwitchNetwork();
 
+      // ✅ Request account access explicitly
+      try {
+        await window.ethereum?.request({
+          method: "eth_requestAccounts",
+        });
+      } catch (accountError) {
+        throw new Error("Please approve wallet connection to continue");
+      }
+
       // 5️⃣ Upload dataset to backend
       setUploadProgress({
         step: 1,
@@ -332,16 +341,32 @@ export default function MintDatasetModal({
       // 7️⃣ Mint NFT on Asset Hub
       setUploadProgress({
         step: 3,
-        message: "Minting your dataset NFT on blockchain...",
+        message: "Waiting for wallet approval...",
       });
-      toast.loading("Minting your dataset NFT on blockchain...", {
+      toast.loading("Please approve the transaction in your wallet...", {
         id: "minting",
       });
 
       console.log("🎨 Minting with CID:", dataset.cid);
 
-      // ✅ Pass ONLY the CID to mint (your contract auto-assigns to msg.sender)
-      await mint(dataset.cid);
+      try {
+        // ✅ Pass ONLY the CID to mint
+        await mint(dataset.cid);
+      } catch (mintError) {
+        // Handle user rejection specifically
+        if (mintError instanceof Error) {
+          if (
+            mintError.message.includes("User denied") ||
+            mintError.message.includes("User rejected") ||
+            mintError.message.includes("not been authorized")
+          ) {
+            throw new Error(
+              "Transaction rejected. Please approve the transaction in your wallet to mint the NFT."
+            );
+          }
+        }
+        throw mintError;
+      }
 
       // Success will be handled by onSuccess callback above
     } catch (err: unknown) {
