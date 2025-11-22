@@ -38,14 +38,14 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
       return blo(address as `0x${string}`);
     } catch (error) {
       console.error("Error generating avatar:", error);
-      return "/default-avatar.png"; 
+      return "/default-avatar.png";
     }
   }, [dataset.creator]);
 
   const getQualityColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    return "text-red-500";
+    // if (score >= 80) return "text-green-500";
+    if (score >= 0) return "text-yellow-500";
+    // return "text-red-500";
   };
 
   const getQualityBg = (score: number) => {
@@ -107,7 +107,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
                   dataset.score
                 )}`}
               >
-                {dataset.score}%
+                --%
               </span>
             </div>
           </div>
@@ -139,11 +139,12 @@ const DatasetCard: React.FC<DatasetCardProps> = ({ dataset, onPurchase }) => {
             <p
               className={`font-bold text-sm ${getQualityColor(dataset.score)}`}
             >
-              {dataset.score >= 80
+              {/* {dataset.score >= 80
                 ? "High"
                 : dataset.score >= 60
                 ? "Good"
-                : "Fair"}
+                : "Fair"} */}
+              --
             </p>
           </div>
         </div>
